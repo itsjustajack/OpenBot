@@ -12,7 +12,9 @@
       "!desktop/src-tauri/gen",
       "!**/target",
       "!server/drizzle",
-      "!server/tests/fixtures/arcade-catalogue.json"
+      "!server/tests/fixtures/arcade-catalogue.json",
+      "!.claude/skills/expo-*",
+      "!.claude/skills/eas-*"
     ]
   },
   "formatter": {
