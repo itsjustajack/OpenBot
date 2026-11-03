@@ -9,7 +9,13 @@ import {
   View,
 } from "react-native";
 import { api, type Conversation } from "../src/api";
-import { authClient, serverUrl, signIn, signInEnterprise } from "../src/auth";
+import {
+  authClient,
+  serverConfigured,
+  serverUrl,
+  signIn,
+  signInEnterprise,
+} from "../src/auth";
 import { registerPush, unregisterPush } from "../src/notifications";
 import { useLoad } from "../src/use-load";
 export default function Home() {
@@ -69,6 +75,20 @@ export default function Home() {
       setBusy(false);
     }
   }
+  // A build with no OpenBot PC set: the phone still works on its own, through the Phone Bot.
+  if (!serverConfigured)
+    return (
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+        <Text style={{ fontSize: 24, fontWeight: "600" }}>OpenBot</Text>
+        <Text>
+          This phone app isn't connected to an OpenBot PC, so chats with your PC
+          Bots are off. The Phone Bot works fully on the phone.
+        </Text>
+        <Link href="/phone-bot" style={{ fontSize: 20, color: "#2563eb" }}>
+          Open the Phone Bot
+        </Link>
+      </ScrollView>
+    );
   return (
     <ScrollView
       contentContainerStyle={{ padding: 20, gap: 16 }}

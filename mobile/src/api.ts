@@ -1,9 +1,11 @@
-import { authClient, serverUrl } from "./auth";
+import { authClient, serverConfigured, serverUrl } from "./auth";
 export async function api<T>(
   path: string,
   input?: { method?: string; body?: unknown; signal?: AbortSignal },
 ): Promise<T> {
   if (!path.startsWith("/api/")) throw new Error("Use an OpenBot API path.");
+  if (!serverConfigured)
+    throw new Error("This phone app isn't connected to an OpenBot PC.");
   const cookie = await authClient.getCookie();
   const response = await fetch(`${serverUrl}${path}`, {
     method: input?.method,
