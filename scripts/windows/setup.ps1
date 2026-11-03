@@ -10,6 +10,9 @@
 $ErrorActionPreference = "Continue"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 Set-Location $Root
+$Host.UI.RawUI.WindowTitle = "Setting up OpenBot"
+# Everything this window shows is also saved to setup-log.txt, to send if something goes wrong.
+try { Start-Transcript -Path (Join-Path $Root "setup-log.txt") -Append | Out-Null } catch {}
 $Model = "qwen3:8b"
 
 function Say($text) { Write-Host ""; Write-Host "== $text" -ForegroundColor Cyan }
