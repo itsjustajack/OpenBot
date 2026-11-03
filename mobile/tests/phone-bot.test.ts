@@ -17,9 +17,14 @@ mock.module("../src/api", () => ({ api: async () => ({}) }));
 const { readNeedleAnswer, needleAvailable } = await import(
   "../modules/needle/src"
 );
-const { describe, phoneFacts, phoneTools, readWhen } = await import(
-  "../src/phone-bot"
-);
+const {
+  describe,
+  minutesInWords,
+  phoneFacts,
+  phoneTools,
+  readPlainly,
+  readWhen,
+} = await import("../src/phone-bot");
 
 test("reads Needle's answer, including calls it held back", () => {
   const answer = readNeedleAnswer(
@@ -90,4 +95,51 @@ test("says what it is about to do in plain words", () => {
       arguments: { bot: "Helper", message: "check my email" },
     }),
   ).toBe('Give Helper the message "check my email"');
+});
+
+test("reads common reminders word for word", () => {
+  const now = new Date(2026, 10, 3, 14, 0);
+  expect(readPlainly("remind me to call test in 1 minute", now)).toEqual({
+    name: "remind_me_in",
+    arguments: { what: "call test", minutes: 1 },
+  });
+  expect(readPlainly("Remind me in 2 hours to take the bins out", now)).toEqual(
+    {
+      name: "remind_me_in",
+      arguments: { what: "take the bins out", minutes: 120 },
+    },
+  );
+  expect(
+    readPlainly("remind me to stretch in an hour and a half", now)?.arguments,
+  ).toEqual({
+    what: "stretch",
+    minutes: 90,
+  });
+  expect(readPlainly("remind me to call mum at 5pm", now)?.arguments).toEqual({
+    what: "call mum",
+    at: "2026-11-03 17:00",
+  });
+  expect(readPlainly("remind me to call mum at 5", now)?.arguments.at).toBe(
+    "2026-11-03 17:00",
+  );
+  expect(
+    readPlainly("remind me at 9am tomorrow to walk the dog", now)?.arguments,
+  ).toEqual({
+    what: "walk the dog",
+    at: "2026-11-04 09:00",
+  });
+  expect(readPlainly("note: buy milk", now)).toEqual({
+    name: "save_note",
+    arguments: { text: "buy milk" },
+  });
+  expect(readPlainly("what's on my list", now)).toBeNull();
+});
+
+test("says minutes in plain words", () => {
+  expect(minutesInWords(1)).toBe("1 minute");
+  expect(minutesInWords(20)).toBe("20 minutes");
+  expect(minutesInWords(90)).toBe("1 hour 30 minutes");
+  expect(
+    describe({ name: "remind_me_in", arguments: { what: "tea", minutes: 1 } }),
+  ).toBe('Remind you "tea" in 1 minute');
 });
