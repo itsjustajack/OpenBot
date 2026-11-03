@@ -57,8 +57,32 @@ Install "Node.js" "OpenJS.NodeJS.LTS" "npx"
 Install "Ollama (your offline AI)" "Ollama.Ollama" "ollama"
 Install "Docker Desktop" "Docker.DockerDesktop" "docker"
 
-$Bash = "$env:ProgramFiles\Git\bin\bash.exe"
-if (-not (Test-Path $Bash)) { Stop-Here "Couldn't find Git Bash at $Bash. Restart the PC and run this again." }
+# Git Bash runs OpenBot's start script. Some Git copies (GitHub Desktop's, or a per-user install)
+# live elsewhere or have no bash, so look in the usual places and install Git for Windows if none has it.
+function Find-Bash {
+  $places = @(
+    "$env:ProgramFiles\Git\bin\bash.exe",
+    "${env:ProgramFiles(x86)}\Git\bin\bash.exe",
+    "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe"
+  )
+  $git = Get-Command git -ErrorAction SilentlyContinue
+  if ($git) {
+    $gitDir = Split-Path (Split-Path $git.Source)
+    $places += (Join-Path $gitDir "bin\bash.exe")
+  }
+  foreach ($place in $places) { if ($place -and (Test-Path $place)) { return $place } }
+  return $null
+}
+$Bash = Find-Bash
+if (-not $Bash) {
+  Say "Installing Git for Windows (the copy of Git on this PC has no Git Bash)"
+  winget install --id Git.Git -e --silent --accept-package-agreements --accept-source-agreements
+  Refresh-Path
+  $Bash = Find-Bash
+}
+if (-not $Bash) { Stop-Here "Couldn't find Git Bash. Restart the PC and run this again." }
+# Saved for the Start and Stop launchers, which can't search the way this script can.
+Set-Content -Path (Join-Path $Root ".git-bash-path") -Value $Bash
 
 Say "Starting Docker"
 docker info *> $null

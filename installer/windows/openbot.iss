@@ -27,7 +27,7 @@ WizardStyle=modern
 SourceDir=..\..
 
 [Files]
-Source: "*"; DestDir: "{app}"; Excludes: ".git\*,node_modules\*,installer\windows\Output\*,.env,start-log.txt,stop-log.txt,setup-log.txt,.openbot-ready,.openbot-started"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "*"; DestDir: "{app}"; Excludes: ".git\*,node_modules\*,installer\windows\Output\*,.env,start-log.txt,stop-log.txt,setup-log.txt,.git-bash-path,.openbot-ready,.openbot-started"; Flags: recursesubdirs createallsubdirs ignoreversion
 Source: "desktop\src-tauri\icons\icon.ico"; DestDir: "{app}"; DestName: "openbot.ico"; Flags: ignoreversion
 
 [Icons]
