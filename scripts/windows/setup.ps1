@@ -13,7 +13,9 @@ Set-Location $Root
 $Host.UI.RawUI.WindowTitle = "Setting up OpenBot"
 # Everything this window shows is also saved to setup-log.txt, to send if something goes wrong.
 try { Start-Transcript -Path (Join-Path $Root "setup-log.txt") -Append | Out-Null } catch {}
-$Model = "qwen3:8b"
+# qwen2.5:7b answers straight away; qwen3 "thinks" first, which made every reply slow on a home PC.
+# Both fit a 12 GB graphics card with room for a long conversation.
+$Model = "qwen2.5:7b"
 
 function Say($text) { Write-Host ""; Write-Host "== $text" -ForegroundColor Cyan }
 function Fine($text) { Write-Host "   $text" -ForegroundColor Green }
@@ -103,6 +105,21 @@ if ($LASTEXITCODE -ne 0) {
 Fine "Docker is running."
 
 Say "Getting the offline AI model ($Model, about 5 GB the first time)"
+# OpenBot sends long instructions with every message. Ollama's default memory for a conversation
+# (4,096 words-pieces) cuts them off and slows everything down, so give it 16,384.
+# It also keeps the model ready for an hour after the last message, instead of five minutes, so a
+# reply after a short break doesn't wait for the model to load again.
+if ([Environment]::GetEnvironmentVariable("OLLAMA_CONTEXT_LENGTH", "User") -ne "16384" -or
+    [Environment]::GetEnvironmentVariable("OLLAMA_KEEP_ALIVE", "User") -ne "1h") {
+  [Environment]::SetEnvironmentVariable("OLLAMA_CONTEXT_LENGTH", "16384", "User")
+  [Environment]::SetEnvironmentVariable("OLLAMA_KEEP_ALIVE", "1h", "User")
+  $env:OLLAMA_CONTEXT_LENGTH = "16384"
+  $env:OLLAMA_KEEP_ALIVE = "1h"
+  # Restart Ollama so it picks the setting up.
+  Get-Process ollama*, "ollama app" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 2
+  Fine "Gave the offline AI more room for long conversations."
+}
 ollama list *> $null
 if ($LASTEXITCODE -ne 0) { Start-Process "ollama" "serve" -WindowStyle Hidden; Start-Sleep -Seconds 5 }
 $models = (ollama list) -join "`n"
@@ -127,6 +144,8 @@ if ($envText -notmatch "(?m)^\s*(CPK_INTELLIGENCE_API_KEY|INTELLIGENCE_API_KEY)=
 
 Say "Switching OpenBot to the offline AI"
 bun run ai offline $Model
+# Needle picks which skills each message needs in a blink, instead of asking the main AI first.
+bun run ai needle on
 
 Say "Adding 'OpenBot' shortcuts to your desktop"
 $shell = New-Object -ComObject WScript.Shell
@@ -143,6 +162,10 @@ foreach ($pair in @(@("Start OpenBot", "start-hidden.vbs"), @("Stop OpenBot", "s
 Fine "Done. Next time just double-click 'Start OpenBot' on your desktop."
 
 Say "Starting OpenBot (this takes a few minutes the first time)"
+# Running setup again (to pick up new settings) restarts OpenBot, so stop the running one first.
+if (Test-Path (Join-Path $Root ".openbot-ready")) {
+  & $Bash -c "cd '$($Root -replace '\\','/')' && bash scripts/stop.sh --keep-computers"
+}
 & $Bash -c "cd '$($Root -replace '\\','/')' && bash scripts/start.sh"
 if ($LASTEXITCODE -ne 0) { Stop-Here "OpenBot didn't start. Send Claude the last lines above." }
 
