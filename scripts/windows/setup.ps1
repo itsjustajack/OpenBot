@@ -104,9 +104,12 @@ bun run ai offline $Model
 Say "Adding 'OpenBot' shortcuts to your desktop"
 $shell = New-Object -ComObject WScript.Shell
 $desktop = [Environment]::GetFolderPath("Desktop")
-foreach ($pair in @(@("Start OpenBot", "Start OpenBot.bat"), @("Stop OpenBot", "Stop OpenBot.bat"))) {
+# The shortcuts run OpenBot with no windows left open (the .vbs files hide them).
+foreach ($pair in @(@("Start OpenBot", "start-hidden.vbs"), @("Stop OpenBot", "stop-hidden.vbs"))) {
   $link = $shell.CreateShortcut((Join-Path $desktop "$($pair[0]).lnk"))
-  $link.TargetPath = Join-Path $Root $pair[1]
+  $link.TargetPath = "$env:SystemRoot\System32\wscript.exe"
+  $link.Arguments = '"' + (Join-Path $Root "scripts\windows\$($pair[1])") + '"'
+  $link.IconLocation = "$env:SystemRoot\System32\shell32.dll,137"
   $link.WorkingDirectory = $Root
   $link.Save()
 }
