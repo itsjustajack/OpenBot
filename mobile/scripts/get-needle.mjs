@@ -12,15 +12,30 @@ const MODULE = join(
   "modules",
   "needle",
 );
+const LIBS = join(MODULE, "android", "libs", "arm64-v8a");
+
+/** The Android folder's files, as Hugging Face lists them, so a renamed file is still found. */
+async function androidFiles() {
+  try {
+    const response = await fetch(
+      "https://huggingface.co/api/models/Cactus-Compute/needle3/tree/main/android-arm64",
+    );
+    if (!response.ok) return [];
+    return (await response.json()).map((entry) => entry.path);
+  } catch {
+    return [];
+  }
+}
+
+const listed = await androidFiles();
+const library =
+  listed.find((path) => path.endsWith(".a")) ?? "android-arm64/libneedle.a";
+const header =
+  listed.find((path) => path.endsWith(".h")) ?? "android-arm64/needle.h";
+if (listed.length) console.log(`Needle's Android files: ${listed.join(", ")}`);
 const FILES = [
-  [
-    "android-arm64/libneedle.a",
-    join(MODULE, "android", "libs", "arm64-v8a", "libneedle.a"),
-  ],
-  [
-    "android-arm64/needle.h",
-    join(MODULE, "android", "libs", "arm64-v8a", "needle.h"),
-  ],
+  [library, join(LIBS, "libneedle.a")],
+  [header, join(LIBS, "needle.h")],
   ["needle3.cact", join(MODULE, "assets", "needle3.cact")],
 ];
 

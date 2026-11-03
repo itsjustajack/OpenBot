@@ -4,11 +4,13 @@ import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
 
 const configured = process.env.EXPO_PUBLIC_SERVER_URL;
-if (!configured)
-  throw new Error(
-    "Set EXPO_PUBLIC_SERVER_URL to your OpenBot deployment before building the native app.",
-  );
-const endpoint = new URL(configured);
+/**
+ * Whether this build knows where OpenBot's server is. A build without one still opens, and the Phone
+ * Bot works fully on its own: the phone never depends on the PC. Nothing that needs the server is
+ * reachable then, and calls to it fail with a plain message instead of the app refusing to start.
+ */
+export const serverConfigured = Boolean(configured);
+const endpoint = new URL(configured || "https://openbot.invalid");
 if (
   endpoint.protocol !== "https:" &&
   !(__DEV__ && endpoint.protocol === "http:")

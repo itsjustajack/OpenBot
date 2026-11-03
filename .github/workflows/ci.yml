@@ -378,7 +378,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        # This fork runs on Windows PCs and Android phones only, so the start scripts are checked on
+        # Windows. Upstream also checks macOS; GitHub's macOS runners often have no capacity here.
+        os: [windows-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
