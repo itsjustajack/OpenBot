@@ -7,6 +7,16 @@ root = fso.GetParentFolderName(fso.GetParentFolderName(fso.GetParentFolderName(W
 programs = shell.ExpandEnvironmentStrings("%ProgramFiles%")
 bash = programs & "\Git\bin\bash.exe"
 If fso.FileExists(root & "\.git-bash-path") Then bash = Trim(Replace(Replace(fso.OpenTextFile(root & "\.git-bash-path").ReadAll, vbCr, ""), vbLf, ""))
+' No saved path yet (setup still running, or an older setup): try the other usual places for Git Bash.
+If Not fso.FileExists(bash) Then
+  For Each place In Array(shell.ExpandEnvironmentStrings("%ProgramFiles(x86)%") & "\Git\bin\bash.exe", shell.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Programs\Git\bin\bash.exe")
+    If fso.FileExists(place) Then bash = place
+  Next
+End If
+If Not fso.FileExists(bash) Then
+  MsgBox "OpenBot can't find Git Bash yet. If the 'Setting up OpenBot' window is still open, let it finish first. Otherwise open OpenBot from the Start menu to run setup again.", 48, "OpenBot"
+  WScript.Quit
+End If
 docker = programs & "\Docker\Docker\Docker Desktop.exe"
 
 ' Docker has to be running first; start it quietly if it isn't.
