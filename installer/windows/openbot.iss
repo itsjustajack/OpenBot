@@ -1,6 +1,6 @@
 ; The OpenBot installer for Windows: one OpenBot.exe-style setup that puts OpenBot in the user's own
 ; folder, adds an "OpenBot" icon to the Start menu and the desktop, and opens it at the end.
-; The first time the icon is opened it offers "Install OpenBot?", which runs scripts\windows\setup.ps1.
+; The first time the icon is opened it offers "Set up OpenBot", which runs scripts\windows\setup.ps1.
 ; Built by .github/workflows/pc-app.yml with Inno Setup; SourceDir is the checked-out repository.
 
 #ifndef AppVersion
