@@ -6,6 +6,8 @@
  *   bun run ai offline qwen3:8b    that model on this computer
  *   bun run ai online              back to the online AI you had before (OpenAI or your own server)
  *   bun run ai needle on|off       Needle, a tiny helper that picks each message's tools in a blink
+ *   bun run ai auto [model]        online AI first, this computer's AI (that model) when the internet is gone
+ *   bun run ai gemini <key>        use Google's Gemini (free key from aistudio.google.com) as the online AI, then auto
  *
  * Offline finds Ollama (11434) or LM Studio (1234) the same way Admin, Local AI does. Going offline
  * first keeps a copy of the online settings in `.env` (the ONLINE_SAVED_ lines), and going online puts
@@ -23,6 +25,9 @@ const KEYS = [
   "AGENT_BOT_MODEL",
   "OPENAI_API_KEY",
 ] as const;
+const SWITCH_PORT = 4320;
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai";
+const GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
 const SAVED = "ONLINE_SAVED_";
 /** Written for a key that had no line, so going online removes it again. */
 const UNSET = "(unset)";
@@ -54,6 +59,10 @@ function write(text: string, values: Record<string, string | null>): string {
   return lines.join("\n");
 }
 
+function isAuto(text: string): boolean {
+  return read(text, "AI_SWITCH") === "on";
+}
+
 function isOffline(text: string): boolean {
   const base = read(text, "OPENAI_BASE_URL");
   return Boolean(base && isLocalBaseUrl(base));
@@ -64,9 +73,11 @@ const mode = process.argv[2];
 
 if (!mode || mode === "status") {
   console.log(
-    isOffline(current)
-      ? `Offline: ${read(current, "BOT_MODEL") ?? "a local model"} on this computer. Switch with: bun run ai online`
-      : `Online: ${read(current, "BOT_MODEL") ?? "the default model"}. Switch with: bun run ai offline`,
+    isAuto(current)
+      ? `Online first: ${read(current, "ONLINE_AI_MODEL") ?? "no online AI set yet"}, and ${read(current, "OFFLINE_AI_MODEL") ?? "the AI"} on this computer when the internet is gone.`
+      : isOffline(current)
+        ? `Offline: ${read(current, "BOT_MODEL") ?? "a local model"} on this computer. Switch with: bun run ai online`
+        : `Online: ${read(current, "BOT_MODEL") ?? "the default model"}. Switch with: bun run ai offline`,
   );
   process.exit(0);
 }
@@ -76,7 +87,7 @@ if (mode === "online") {
     console.log("Already online. Nothing changed.");
     process.exit(0);
   }
-  const restore: Record<string, string | null> = {};
+  const restore: Record<string, string | null> = { AI_SWITCH: null };
   for (const key of KEYS) {
     const saved = read(current, SAVED + key);
     restore[key] = saved === undefined || saved === UNSET ? null : saved;
@@ -113,6 +124,100 @@ if (mode === "needle") {
   process.exit(0);
 }
 
+/** Keeps the online settings once, before the first switch away from them, so `online` can put them back. */
+function backupOf(text: string): Record<string, string> {
+  const backup: Record<string, string> = {};
+  if (!isOffline(text))
+    for (const key of KEYS) backup[SAVED + key] = read(text, key) ?? UNSET;
+  return backup;
+}
+
+/** Gemini's newest plain "flash" model, which is fast and on the free plan. */
+function pickGeminiModel(ids: string[]): string | undefined {
+  const version = (id: string) =>
+    Number(id.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? 0);
+  return ids
+    .map((id) => id.replace(/^models\//, ""))
+    .filter((id) => /^gemini-[\d.]+-flash$/.test(id))
+    .sort((a, b) => version(b) - version(a))[0];
+}
+
+if (mode === "gemini") {
+  const key = process.argv[3]?.trim();
+  if (!key) {
+    console.error(
+      "Use: bun run ai gemini <your key>. Get a free key at https://aistudio.google.com/apikey",
+    );
+    process.exit(1);
+  }
+  let model = GEMINI_FALLBACK_MODEL;
+  try {
+    const response = await fetch(`${GEMINI_URL}/models`, {
+      headers: { authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (
+      response.status === 400 ||
+      response.status === 401 ||
+      response.status === 403
+    ) {
+      console.error(
+        "Google said that key doesn't work. Copy it again from https://aistudio.google.com/apikey and try once more. Nothing changed.",
+      );
+      process.exit(1);
+    }
+    const ids =
+      ((await response.json()) as { data?: { id: string }[] }).data?.map(
+        (entry) => entry.id,
+      ) ?? [];
+    model = pickGeminiModel(ids) ?? model;
+  } catch {
+    console.log(
+      `Couldn't reach Google just now, so using ${model}. That's fine.`,
+    );
+  }
+  writeFileSync(
+    ENV,
+    write(current, {
+      ONLINE_AI_URL: GEMINI_URL,
+      ONLINE_AI_KEY: key,
+      ONLINE_AI_MODEL: model,
+    }),
+  );
+  console.log(`Online AI set: ${model} from Google.`);
+  process.argv[2] = "auto";
+  process.argv.length = 3;
+}
+
+if (process.argv[2] === "auto") {
+  const text = existsSync(ENV) ? readFileSync(ENV, "utf8") : "";
+  const offlineModel =
+    process.argv[3]?.trim() || read(text, "OFFLINE_AI_MODEL") || "qwen2.5:7b";
+  const onlineModel = read(text, "ONLINE_AI_MODEL");
+  const model = onlineModel || offlineModel;
+  writeFileSync(
+    ENV,
+    write(text, {
+      ...backupOf(text),
+      AI_SWITCH: "on",
+      OFFLINE_AI_MODEL: offlineModel,
+      OPENAI_BASE_URL: `http://127.0.0.1:${SWITCH_PORT}/v1`,
+      // The Bots run in containers beside the switch, and reach it by its name.
+      OPENAI_CONTAINER_BASE_URL: `http://ai-switch:${SWITCH_PORT}/v1`,
+      BOT_MODEL: model,
+      AGENT_BOT_MODEL: model,
+      // The switch holds the real key; the settings check only that one is there.
+      OPENAI_API_KEY: "switch",
+    }),
+  );
+  console.log(
+    onlineModel
+      ? `OpenBot now uses ${onlineModel} online, and ${offlineModel} on this computer whenever the internet is gone. Restart OpenBot to switch.`
+      : `No online AI is set yet, so OpenBot uses ${offlineModel} on this computer for now. Add one with: bun run ai gemini <key>`,
+  );
+  process.exit(0);
+}
+
 if (mode !== "offline") {
   console.error(
     "Use: bun run ai online, bun run ai offline [model], bun run ai needle on|off, or bun run ai",
@@ -140,16 +245,14 @@ if (!model) {
 }
 
 // Keep the online settings once, the first time we go offline, so `online` can put them back.
-const backup: Record<string, string> = {};
-if (!isOffline(current)) {
-  for (const key of KEYS) backup[SAVED + key] = read(current, key) ?? UNSET;
-}
+const backup = backupOf(current);
 const port = new URL(runtime.baseUrl).port;
 const key = read(current, "OPENAI_API_KEY");
 writeFileSync(
   ENV,
   write(current, {
     ...backup,
+    AI_SWITCH: null,
     OPENAI_BASE_URL: `http://127.0.0.1:${port}/v1`,
     // The server and the Bots run in containers, which reach this computer by this name.
     OPENAI_CONTAINER_BASE_URL: `http://host.docker.internal:${port}/v1`,

@@ -57,6 +57,8 @@ SUPERVISOR_PORT="$(setting SUPERVISOR_PORT 4500)"
 ONE_COMPUTER_EACH="$(setting OPENBOT_ONE_COMPUTER_EACH true)"
 # Needle, the small tool-picking helper, runs only when it was turned on (`bun run ai needle on`).
 NEEDLE_URL="$(setting NEEDLE_URL "")"
+# The AI switch (online first, this computer's AI when offline) runs when it was turned on (`bun run ai auto`).
+AI_SWITCH="$(setting AI_SWITCH "")"
 export APP_PORT SERVER_PORT
 SUPERVISOR_TOKEN="$(setting SUPERVISOR_TOKEN openbot-dev-supervisor-token)"
 COMPUTER_TOKEN="$(setting COMPUTER_TOKEN openbot-dev-computer-token)"
@@ -255,6 +257,9 @@ SERVICES+=(agent-langgraph)
 if [ -n "$NEEDLE_URL" ]; then
   SERVICES+=(needle)
 fi
+if [ "$AI_SWITCH" = "on" ]; then
+  SERVICES+=(ai-switch)
+fi
 
 export SUPERVISOR_TOKEN COMPUTER_TOKEN WORKER_SHARED_SECRET
 export COMPUTER_PORT BOT_PORT LANGGRAPH_PORT SUPERVISOR_PORT
@@ -274,6 +279,9 @@ if [ "$BOT_PROVIDER" != "anthropic" ]; then
   wait_for "http://localhost:$BOT_PORT/health" "agent-bot"
 fi
 wait_for "http://localhost:$LANGGRAPH_PORT/health" "agent-langgraph"
+if [ "$AI_SWITCH" = "on" ]; then
+  wait_for "http://localhost:$(setting AI_SWITCH_PORT 4320)/health" "ai-switch"
+fi
 
 for table in agent_profiles agent_preferences; do
   if ! docker compose exec -T postgres \

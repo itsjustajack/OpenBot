@@ -524,6 +524,23 @@ services:
       - needle-models:/models
     restart: unless-stopped
 
+  # The AI switch: the online AI first, and the AI on this computer (Ollama) whenever the internet is
+  # gone or the online AI is busy, so work never stops. Started when AI_SWITCH=on (`bun run ai auto`).
+  ai-switch:
+    profiles: ["ai-switch"]
+    build: ./ai-switch
+    ports:
+      - "127.0.0.1:${AI_SWITCH_PORT:-4320}:4320"
+    environment:
+      ONLINE_AI_URL: ${ONLINE_AI_URL:-}
+      ONLINE_AI_KEY: ${ONLINE_AI_KEY:-}
+      ONLINE_AI_MODEL: ${ONLINE_AI_MODEL:-}
+      OFFLINE_AI_URL: ${OFFLINE_AI_URL:-http://host.docker.internal:11434/v1}
+      OFFLINE_AI_MODEL: ${OFFLINE_AI_MODEL:-qwen2.5:7b}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
   # The same Bot behavior on a framework, exposed as another AG-UI endpoint and registry row.
   agent-langgraph:
     build:
