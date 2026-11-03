@@ -1,3 +1,8 @@
 # Auto detect text files and perform LF normalization, and check them out with LF on every OS.
 # Biome formats to LF and the s6 files are copied into a Linux image, so a CRLF checkout breaks both.
 * text=auto eol=lf
+# Windows scripts run on Windows: keep them with Windows line endings when checked out.
+*.vbs text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.iss text eol=crlf
