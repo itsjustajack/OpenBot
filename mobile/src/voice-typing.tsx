@@ -3,7 +3,7 @@ import {
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
 import { useRef, useState } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Linking, Platform, Pressable, Text, View } from "react-native";
 import { colors } from "./ui";
 
 /**
@@ -20,7 +20,7 @@ type Status =
   | { kind: "listening" }
   | { kind: "needs-pack"; lang: string }
   | { kind: "getting-pack" }
-  | { kind: "problem"; message: string };
+  | { kind: "problem"; message: string; settings?: boolean };
 
 function phoneLanguage(): string {
   try {
@@ -38,7 +38,7 @@ function join(before: string, words: string): string {
 
 const PROBLEMS: Record<string, string> = {
   "not-allowed":
-    "Voice typing needs the microphone. Allow it in the phone's settings.",
+    "Voice typing needs the microphone. Tap here to open OpenBot's settings, then Permissions, then Microphone, then Allow.",
   "language-not-supported":
     "This phone can't type this language by voice offline.",
   "service-not-allowed": "This phone has no offline voice typing.",
@@ -81,6 +81,7 @@ export function VoiceTypingButton({
     if (event.error === "aborted") return;
     setStatus({
       kind: "problem",
+      settings: event.error === "not-allowed",
       message:
         PROBLEMS[event.error] ??
         "Voice typing stopped. Tap the mic to try again.",
@@ -101,7 +102,11 @@ export function VoiceTypingButton({
     const permission =
       await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!permission.granted) {
-      setStatus({ kind: "problem", message: PROBLEMS["not-allowed"] ?? "" });
+      setStatus({
+        kind: "problem",
+        settings: true,
+        message: PROBLEMS["not-allowed"] ?? "",
+      });
       return;
     }
     if (Platform.OS === "android") {
@@ -204,12 +209,21 @@ export function VoiceTypingButton({
         </Text>
       ) : null}
       {status.kind === "problem" ? (
-        <Text
-          accessibilityRole="alert"
-          style={{ flex: 1, color: colors.error }}
+        <Pressable
+          accessibilityRole={status.settings ? "button" : "alert"}
+          disabled={!status.settings}
+          onPress={() => void Linking.openSettings()}
+          style={{ flex: 1 }}
         >
-          {status.message}
-        </Text>
+          <Text
+            style={{
+              color: colors.error,
+              textDecorationLine: status.settings ? "underline" : "none",
+            }}
+          >
+            {status.message}
+          </Text>
+        </Pressable>
       ) : null}
     </View>
   );

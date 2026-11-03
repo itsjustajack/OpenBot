@@ -167,6 +167,146 @@ export function readWhen(value: string): Date | null {
   return Number.isNaN(when.getTime()) ? null : when;
 }
 
+/** "1 minute", "20 minutes", "1 hour", "1 hour 30 minutes". */
+export function minutesInWords(minutes: number): string {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "? minutes";
+  const hours = Math.floor(minutes / 60);
+  const rest = Math.round(minutes % 60);
+  const part = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  if (!hours) return part(rest, "minute");
+  return rest
+    ? `${part(hours, "hour")} ${part(rest, "minute")}`
+    : part(hours, "hour");
+}
+
+const NUMBER_WORDS: Record<string, number> = {
+  a: 1,
+  an: 1,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  fifteen: 15,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  "forty-five": 45,
+  sixty: 60,
+  half: 0.5,
+};
+
+function amount(word: string): number {
+  const value = Number(word);
+  return Number.isFinite(value)
+    ? value
+    : (NUMBER_WORDS[word.toLowerCase()] ?? Number.NaN);
+}
+
+/** Tidies what to be reminded of: no "to", no trailing comma, the person's own words kept. */
+function tidy(what: string): string {
+  return what
+    .trim()
+    .replace(/^(to|about|that)\s+/i, "")
+    .replace(/[\s,.;:!]+$/, "")
+    .trim();
+}
+
+/**
+ * The common requests, read word for word before Needle is asked, so "remind me to call test in
+ * 1 minute" is set exactly as said. Needle is only asked when this can't tell. Exported for tests.
+ */
+export function readPlainly(text: string, now = new Date()): NeedleCall | null {
+  const said = text.trim().replace(/\s+/g, " ");
+  const note = said.match(
+    /^(?:note|save note|write down|remember)\s*[:,-]?\s+(.+)$/i,
+  );
+  if (note?.[1])
+    return { name: "save_note", arguments: { text: note[1].trim() } };
+
+  const remind = said.match(/^(?:please\s+)?remind me\s+(.+)$/i);
+  if (!remind?.[1]) return null;
+  const rest = remind[1];
+
+  const unit = "(minutes?|mins?|hours?|hrs?)";
+  const inside = rest.match(
+    new RegExp(
+      `^(.*?)\\s*\\bin\\s+([\\w-]+)\\s+${unit}(\\s+and a half)?\\s*(.*)$`,
+      "i",
+    ),
+  );
+  const before = rest.match(
+    new RegExp(`^in\\s+([\\w-]+)\\s+${unit}\\s+(.+)$`, "i"),
+  );
+  const pick = inside
+    ? {
+        what: `${inside[1]} ${inside[5]}`,
+        count: inside[2],
+        unit: inside[3],
+        half: Boolean(inside[4]),
+      }
+    : before
+      ? { what: before[3], count: before[1], unit: before[2], half: false }
+      : null;
+  if (pick) {
+    let count = amount(pick.count ?? "");
+    if (pick.half) count += 0.5;
+    const what = tidy(pick.what ?? "");
+    if (Number.isFinite(count) && count > 0 && what) {
+      const minutes = /^h/i.test(pick.unit ?? "") ? count * 60 : count;
+      return {
+        name: "remind_me_in",
+        arguments: { what, minutes: Math.round(minutes) },
+      };
+    }
+  }
+
+  const at = rest.match(
+    /^(.*?)\s*\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?\s*(today|tonight|tomorrow)?\s*(.*)$/i,
+  );
+  if (at) {
+    let hour = Number(at[2]);
+    const minute = Number(at[3] ?? 0);
+    const half = (at[4] ?? "").toLowerCase().replace(/\./g, "");
+    const day = (at[5] ?? "").toLowerCase();
+    if (half === "pm" && hour < 12) hour += 12;
+    if (half === "am" && hour === 12) hour = 0;
+    if (!half && day === "tonight" && hour < 12) hour += 12;
+    const what = tidy(
+      `${at[1]} ${at[6]}`.replace(/\b(today|tonight|tomorrow)\b/i, ""),
+    );
+    if (hour > 23 || minute > 59 || !what) return null;
+    const when = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      hour,
+      minute,
+    );
+    if (day === "tomorrow") when.setDate(when.getDate() + 1);
+    // No am/pm and no day: the next time that clock time comes round.
+    else if (when.getTime() <= now.getTime()) {
+      if (!half && hour < 12 && hour + 12 > now.getHours())
+        when.setHours(hour + 12);
+      else when.setDate(when.getDate() + 1);
+    }
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return {
+      name: "remind_me_at",
+      arguments: {
+        what,
+        at: `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())} ${pad(when.getHours())}:${pad(when.getMinutes())}`,
+      },
+    };
+  }
+  return null;
+}
+
 export const SCREENS: Record<string, string> = {
   chats: "/",
   bots: "/bots",
@@ -187,7 +327,7 @@ export function describe(call: NeedleCall): string {
     case "remind_me_at":
       return `Remind you "${s("what")}" at ${s("at")}`;
     case "remind_me_in":
-      return `Remind you "${s("what")}" in ${String(a.minutes ?? "?")} minutes`;
+      return `Remind you "${s("what")}" in ${minutesInWords(Number(a.minutes))}`;
     case "save_note":
       return `Save the note "${s("text")}"`;
     case "find_notes":

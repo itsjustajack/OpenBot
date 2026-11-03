@@ -20,6 +20,7 @@ import {
   type Note,
   phoneFacts,
   phoneTools,
+  readPlainly,
   removeNote,
   removeWaiting,
   sendWaiting,
@@ -83,6 +84,13 @@ export default function PhoneBot() {
     setBusy(true);
     setUnsure(null);
     try {
+      // Common requests are read word for word; Needle only gets what this can't tell.
+      const plain = readPlainly(you);
+      if (plain) {
+        setText("");
+        await run(you, [plain]);
+        return;
+      }
       const reply = await askNeedle(you, phoneTools(saved.bots), phoneFacts());
       setText("");
       if (reply.calls.length && (reply.confidence ?? 1) >= SURE)
@@ -154,6 +162,7 @@ export default function PhoneBot() {
 
       {unsure ? (
         <View style={card}>
+          <Text style={muted}>You said: {unsure.you}</Text>
           <Text style={{ fontWeight: "600" }}>Did you mean…</Text>
           {unsure.calls.map((call, index) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: one answer's calls never reorder
@@ -170,8 +179,12 @@ export default function PhoneBot() {
             />
             <Button
               color={colors.muted}
-              onPress={() => setUnsure(null)}
-              title="No"
+              onPress={() => {
+                // Put the words back so they can be fixed and sent again.
+                setText(unsure.you);
+                setUnsure(null);
+              }}
+              title="No, let me fix it"
             />
           </View>
         </View>
