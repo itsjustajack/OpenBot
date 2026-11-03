@@ -58,3 +58,5 @@ venv/
 extension/**/*.pem
 start-log.txt
 stop-log.txt
+.openbot-ready
+.openbot-started

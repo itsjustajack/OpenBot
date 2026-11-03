@@ -1,0 +1,46 @@
+name: PC app
+
+# Builds the Windows installer, OpenBot-Setup.exe, from this tree. Runs on pull requests and changes on
+# main that touch the Windows set-up or the installer, and by hand from the Actions tab
+# ("Run workflow"). The installer is attached to the run as "OpenBot-PC" (a .zip to unpack).
+#
+# Not code-signed yet, so Windows SmartScreen shows "Windows protected your PC" the first time:
+# "More info", then "Run anyway".
+on:
+  pull_request:
+    paths: ["installer/**", "scripts/windows/**", ".github/workflows/pc-app.yml"]
+  push:
+    branches: [main]
+    paths: ["installer/**", "scripts/windows/**", ".github/workflows/pc-app.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pc-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if (-not $version) { $version = "0.0.0" }
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" installer\windows\openbot.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem installer\windows\Output
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: OpenBot-PC
+          path: installer/windows/Output/OpenBot-Setup.exe
+          if-no-files-found: error

@@ -18,9 +18,12 @@ If shell.Run("cmd /c docker info >nul 2>&1", 0, True) <> 0 Then
 End If
 
 shell.CurrentDirectory = root
+noBrowser = WScript.Arguments.Count > 0
+If fso.FileExists(root & "\.openbot-started") Then fso.DeleteFile root & "\.openbot-started"
 result = shell.Run("""" & bash & """ -c ""bash scripts/start.sh > start-log.txt 2>&1""", 0, True)
 If result = 0 Then
-  shell.Run "http://localhost:3010", 1, False
+  fso.CreateTextFile(root & "\.openbot-started", True).Close
+  If Not noBrowser Then shell.Run "http://localhost:3010", 1, False
 Else
   MsgBox "OpenBot didn't start. Send Claude the file start-log.txt from " & root, 48, "OpenBot"
 End If

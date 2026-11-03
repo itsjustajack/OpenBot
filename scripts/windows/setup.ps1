@@ -119,6 +119,9 @@ Say "Starting OpenBot (this takes a few minutes the first time)"
 & $Bash -c "cd '$($Root -replace '\\','/')' && bash scripts/start.sh"
 if ($LASTEXITCODE -ne 0) { Stop-Here "OpenBot didn't start. Send Claude the last lines above." }
 
+# Marks setup as done, so the OpenBot icon starts it straight away from now on.
+Set-Content -Path (Join-Path $Root ".openbot-ready") -Value (Get-Date -Format o)
+Set-Content -Path (Join-Path $Root ".openbot-started") -Value (Get-Date -Format o)
 Start-Process "http://localhost:3010"
 Write-Host ""
 Write-Host "OpenBot is running. It opened in your browser at http://localhost:3010" -ForegroundColor Green
