@@ -142,8 +142,21 @@ if ($envText -notmatch "(?m)^\s*(CPK_INTELLIGENCE_API_KEY|INTELLIGENCE_API_KEY)=
   }
 } else { Fine "Already signed in to CopilotKit." }
 
-Say "Switching OpenBot to the offline AI"
-bun run ai offline $Model
+Say "Online AI first, this computer's AI when the internet is gone"
+$envText = Get-Content ".env" -Raw
+if ($envText -notmatch "(?m)^\s*ONLINE_AI_KEY=\S+") {
+  Write-Host "   OpenBot uses Google's Gemini online (free), and switches to the AI on this computer"
+  Write-Host "   by itself whenever the internet stops, so your work never stops."
+  Write-Host "   A Google page opens now. Sign in, click 'Create API key', and copy the key."
+  Start-Process "https://aistudio.google.com/apikey"
+  for ($try = 1; $try -le 3; $try++) {
+    $key = (Read-Host "   Paste the key here and press Enter (or just press Enter to skip for now)").Trim()
+    if (-not $key) { Fine "Skipped. OpenBot uses this computer's AI until you add a key."; break }
+    bun run ai gemini $key
+    if ($LASTEXITCODE -eq 0) { break }
+  }
+} else { Fine "Online AI already set." }
+bun run ai auto $Model
 # Needle picks which skills each message needs in a blink, instead of asking the main AI first.
 bun run ai needle on
 
