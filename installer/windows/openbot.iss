@@ -1,6 +1,7 @@
 ; The OpenBot installer for Windows: one OpenBot.exe-style setup that puts OpenBot in the user's own
 ; folder, adds an "OpenBot" icon to the Start menu and the desktop, and opens it at the end.
-; The first time the icon is opened it offers "Set up OpenBot", which runs scripts\windows\setup.ps1.
+; The last page runs scripts\windows\setup.ps1 in a window that stays open; the icon does the same
+; until setup has finished once.
 ; Built by .github/workflows/pc-app.yml with Inno Setup; SourceDir is the checked-out repository.
 
 #ifndef AppVersion
@@ -26,7 +27,7 @@ WizardStyle=modern
 SourceDir=..\..
 
 [Files]
-Source: "*"; DestDir: "{app}"; Excludes: ".git\*,node_modules\*,installer\windows\Output\*,.env,start-log.txt,stop-log.txt,.openbot-ready,.openbot-started"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "*"; DestDir: "{app}"; Excludes: ".git\*,node_modules\*,installer\windows\Output\*,.env,start-log.txt,stop-log.txt,setup-log.txt,.openbot-ready,.openbot-started"; Flags: recursesubdirs createallsubdirs ignoreversion
 Source: "desktop\src-tauri\icons\icon.ico"; DestDir: "{app}"; DestName: "openbot.ico"; Flags: ignoreversion
 
 [Icons]
@@ -34,7 +35,7 @@ Name: "{userprograms}\OpenBot"; Filename: "{sys}\wscript.exe"; Parameters: """{a
 Name: "{userdesktop}\OpenBot"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\scripts\windows\open.vbs"""; WorkingDir: "{app}"; IconFilename: "{app}\openbot.ico"
 
 [Run]
-Filename: "{sys}\wscript.exe"; Parameters: """{app}\scripts\windows\open.vbs"""; Description: "Open OpenBot"; Flags: postinstall nowait skipifsilent
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -NoExit -File ""{app}\scripts\windows\setup.ps1"""; WorkingDir: "{app}"; Description: "Set up OpenBot now (gets Docker, Ollama and your offline AI; 10 to 20 minutes)"; Flags: postinstall nowait skipifsilent
 
 [UninstallRun]
 Filename: "{sys}\wscript.exe"; Parameters: """{app}\scripts\windows\stop-hidden.vbs"" /quiet"; Flags: runhidden waituntilterminated; RunOnceId: "StopOpenBot"
