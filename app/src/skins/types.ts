@@ -27,10 +27,19 @@ export type Skin = {
    * How this skin draws a Bot: as its orb, with the orb, name and role at the top of a conversation,
    * or as the generated face. Absent, a face.
    */
-  botLook?: "orb" | "face";
+  botLook?: "orb" | "face" | "solid";
   /**
    * Screens only this skin has, served at `/s/<key>`. They draw OpenBot's existing data; a skin
    * adds no endpoint. A key the active skin does not have goes home.
    */
   screens?: Record<string, ComponentType>;
+  /**
+   * Extra parts for OpenBot's own home screen, which keeps its message box and how a message is
+   * sent. `Top` replaces the bar above the greeting (it must still let the person open the
+   * conversation list); `Below` is drawn under the message box. Absent, home is OpenBot's own.
+   */
+  home?: {
+    Top?: ComponentType;
+    Below?: ComponentType;
+  };
 };

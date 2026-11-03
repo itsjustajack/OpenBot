@@ -107,6 +107,8 @@ import type { MemoryIngestion } from "./memory/ingestion";
 import { createMemoryRoutes } from "./memory/routes";
 import type { MemoryStore } from "./memory/store";
 import { parsePageLimit } from "./paging";
+import { createLocalAiRoutes } from "./local-ai/routes";
+import { createMailRoutes } from "./mail/routes";
 import { createPasswordRoutes, createSignInRoutes } from "./passwords/routes";
 import type { SignInService } from "./passwords/service";
 import type { OnboardingStore } from "./people/onboarding";
@@ -665,6 +667,7 @@ export function createApp(
   app.use("/api/*", createEnterpriseGate(requireUser));
   app.route("/api/admin/enterprise", createEnterpriseAdminRoutes(requireUser));
   app.route("/api/admin/proactive", createProactiveAdminRoutes(requireUser));
+  app.route("/api/admin/local-ai", createLocalAiRoutes(requireUser));
   app.on(["PUT", "PATCH", "DELETE"], "/api/auth/scim/*", (context) =>
     auth
       ? auth.handler(context.req.raw)
@@ -1719,6 +1722,8 @@ export function createApp(
       createPasswordRoutes(coworker.passwords, requireUser),
     );
   }
+  // A person's own mailbox for the Email tools. Answers 503 when the server has no mail service.
+  app.route("/api/mail", createMailRoutes(requireUser));
   if (coworker?.proactive)
     app.route(
       "/api/proactive",

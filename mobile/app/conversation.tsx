@@ -9,9 +9,11 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { AnswerCard, hasAnswerCards } from "../src/answer-cards";
 import { api, type Conversation, type TranscriptMessage } from "../src/api";
 import { authClient } from "../src/auth";
 import { useLoad } from "../src/use-load";
+import { VoiceTypingButton } from "../src/voice-typing";
 export default function ConversationScreen() {
   const {
     channelId,
@@ -119,18 +121,28 @@ export default function ConversationScreen() {
               padding: 12,
               backgroundColor: message.role === "user" ? "#eff6ff" : "#f3f4f6",
               borderRadius: 8,
+              gap: 8,
             }}
           >
             <Text style={{ fontWeight: "600" }}>
               {message.role === "user" ? "You" : agentId}
             </Text>
-            <Text>
-              {typeof message.content === "string"
-                ? message.content
-                : message.toolCalls?.length
-                  ? "The Bot is using a tool."
-                  : ""}
-            </Text>
+            {typeof message.content === "string" && message.content ? (
+              <Text>{message.content}</Text>
+            ) : null}
+            {message.toolCalls?.map((call, index) => (
+              <AnswerCard
+                call={call}
+                // biome-ignore lint/suspicious/noArrayIndexKey: a message's tool calls never reorder
+                key={index}
+                onPick={conversation?.active && !sending ? setText : undefined}
+              />
+            ))}
+            {typeof message.content !== "string" &&
+            message.toolCalls?.length &&
+            !hasAnswerCards(message.toolCalls) ? (
+              <Text>The Bot is using a tool.</Text>
+            ) : null}
           </View>
         ))}
       </ScrollView>
@@ -150,13 +162,22 @@ export default function ConversationScreen() {
           maxHeight: 140,
         }}
       />
-      <Button
-        title={sending ? "Sending…" : "Send"}
-        disabled={!conversation?.active || !agentId || !text.trim() || sending}
-        onPress={() => {
-          void send();
-        }}
-      />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <VoiceTypingButton
+          disabled={!conversation?.active || sending}
+          onText={setText}
+          text={text}
+        />
+        <Button
+          title={sending ? "Sending…" : "Send"}
+          disabled={
+            !conversation?.active || !agentId || !text.trim() || sending
+          }
+          onPress={() => {
+            void send();
+          }}
+        />
+      </View>
     </View>
   );
 }

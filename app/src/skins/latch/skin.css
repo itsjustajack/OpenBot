@@ -1,0 +1,665 @@
+/*
+ * Latch: the compact, card-based look of Jack's Latch browser (see Latch-look-and-feel.md).
+ *
+ * - Calm greys, white cards on a light grey page (dark grey cards on near-black in dark), one accent
+ *   colour (Ocean Blue) for icons, section labels and switches. Everything else stays neutral.
+ * - The system sans-serif, small text: 14px row names, 11px grey line under them.
+ * - Every group of rows sits on a 16px-rounded card with a hairline border; rows are split by faint
+ *   lines inset 16px; a tiny bold ALL-CAPS label in the accent sits above each card.
+ *
+ * Light is `:root[data-skin="latch"]` and dark is `:root[data-skin="latch"].dark`, and every token is
+ * set in both, because the skin's selector outranks OpenBot's own `.dark`.
+ */
+
+:root[data-skin="latch"] {
+  color-scheme: light;
+
+  --background: #f8f9fa;
+  --foreground: #202124;
+  --card: #ffffff;
+  --card-foreground: #202124;
+  --popover: #ffffff;
+  --popover-foreground: #202124;
+  --primary: #202124;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f3f4;
+  --secondary-foreground: #202124;
+  --muted: #f1f3f4;
+  --muted-foreground: #5f6368;
+  --accent: #f1f3f4;
+  --accent-foreground: #202124;
+  --destructive: #d93025;
+  --success: #1e8e3e;
+  --border: #dadce0;
+  --input: #dadce0;
+  --ring: #0b57d0;
+  --radius: 1rem;
+  --sidebar: #f8f9fa;
+  --sidebar-foreground: #202124;
+  --sidebar-primary: #202124;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgb(11 87 208 / 10%);
+  --sidebar-accent-foreground: #202124;
+  --sidebar-border: #dadce0;
+  --sidebar-ring: #0b57d0;
+
+  /* Latch's own roles. */
+  --latch-accent: #0b57d0;
+  --latch-on-accent: #ffffff;
+  --latch-raised: #f1f3f4;
+  --latch-card-border: rgb(218 220 224 / 40%);
+  --latch-row-line: rgb(218 220 224 / 20%);
+  --latch-badge: #ff9500;
+  /* The ☰ menu's own iPhone-style greys. */
+  --latch-menu-sheet: #f9f9fb;
+  --latch-menu-card: #ffffff;
+  --latch-menu-grey: #8e8e93;
+  --latch-menu-line: #e5e5ea;
+}
+
+:root[data-skin="latch"].dark {
+  color-scheme: dark;
+
+  --background: #131314;
+  --foreground: #e3e3e3;
+  --card: #1e1e1e;
+  --card-foreground: #e3e3e3;
+  --popover: #1e1e1e;
+  --popover-foreground: #e3e3e3;
+  --primary: #e3e3e3;
+  --primary-foreground: #131314;
+  --secondary: #28292a;
+  --secondary-foreground: #e3e3e3;
+  --muted: #28292a;
+  --muted-foreground: #9aa0a6;
+  --accent: #28292a;
+  --accent-foreground: #e3e3e3;
+  --destructive: #f2b8b5;
+  --success: #81c995;
+  --border: #444746;
+  --input: #444746;
+  --ring: #a8c7fa;
+  --radius: 1rem;
+  --sidebar: #131314;
+  --sidebar-foreground: #e3e3e3;
+  --sidebar-primary: #e3e3e3;
+  --sidebar-primary-foreground: #131314;
+  --sidebar-accent: rgb(168 199 250 / 12%);
+  --sidebar-accent-foreground: #e3e3e3;
+  --sidebar-border: #444746;
+  --sidebar-ring: #a8c7fa;
+
+  --latch-accent: #a8c7fa;
+  --latch-on-accent: #131314;
+  --latch-raised: #28292a;
+  --latch-card-border: rgb(68 71 70 / 40%);
+  --latch-row-line: rgb(68 71 70 / 20%);
+  --latch-badge: #ff9500;
+  --latch-menu-sheet: #141416;
+  --latch-menu-card: #1c1c1e;
+  --latch-menu-grey: #a0a0a5;
+  --latch-menu-line: #2c2c2e;
+}
+
+/* The phone's own font, as Latch uses, instead of Inter. */
+:root[data-skin="latch"] body {
+  font-family:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+}
+
+/* Sections sit closer together: 20px between them rather than 48px. */
+:root[data-skin="latch"] [data-slot="page-section"] {
+  margin-top: 1.25rem;
+}
+
+/* The small label above every card: 11px, bold, ALL CAPS, in the accent. */
+:root[data-skin="latch"] [data-slot="page-section-title"] {
+  padding-left: 0.25rem;
+  color: var(--latch-accent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The card: 16px corners, a hairline border in dark mode too, 4px above and below the rows. */
+:root[data-skin="latch"] [data-slot="page-rows"],
+:root[data-skin="latch"] [data-slot="page-card"] {
+  border: 0.5px solid var(--latch-card-border);
+  border-radius: 1rem;
+  background: var(--card);
+}
+
+:root[data-skin="latch"] [data-slot="page-rows"] {
+  margin-top: 0.25rem;
+  padding-block: 0.25rem;
+}
+
+/* One row style: 16px sides, 12px top and bottom, 12px between icon and text. */
+:root[data-skin="latch"] [data-slot="page-rows"] [data-slot="item"] {
+  min-height: 0;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+:root[data-skin="latch"] [data-slot="page-rows"] [data-slot="item-title"] {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+:root[data-skin="latch"] [data-slot="item-description"] {
+  font-size: 0.6875rem;
+}
+
+/* Row icons wear the accent. */
+:root[data-skin="latch"] [data-slot="item-media"] svg {
+  color: var(--latch-accent);
+}
+
+/* The faint line between rows, inset 16px from both sides. */
+:root[data-skin="latch"]
+  [data-slot="page-rows"]
+  [data-slot="separator"][data-orientation="horizontal"] {
+  background: var(--latch-row-line);
+}
+
+/* Switches are on in the accent. */
+:root[data-skin="latch"] [data-slot="switch"][data-checked] {
+  background: var(--latch-accent);
+}
+
+:root[data-skin="latch"]
+  [data-slot="switch"][data-checked]
+  [data-slot="switch-thumb"] {
+  background: var(--latch-on-accent);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * The front of the app: the home screen, the composer and the sidebar.
+ * ------------------------------------------------------------------------------------------- */
+
+/* Big headings in normal weight, as Latch draws them. */
+:root[data-skin="latch"] [data-slot="home-greeting"] {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* "Explore Bots" becomes the same small caps label as every other card. */
+:root[data-skin="latch"] [data-slot="home-section-title"] {
+  padding-left: 0.25rem;
+  color: var(--latch-accent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The message box: a Latch card with soft corners and a hairline edge. */
+:root[data-skin="latch"] [data-slot="composer"] {
+  border: 0.5px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+}
+
+/* A Bot on the home screen: a Latch row on its own small card. */
+:root[data-skin="latch"] [data-slot="agent-row"] {
+  height: auto;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 0.5px solid var(--latch-card-border);
+  border-radius: 1rem;
+  background: var(--card);
+}
+
+:root[data-skin="latch"] [data-slot="agent-row"]:hover {
+  border-color: var(--latch-accent);
+}
+
+:root[data-skin="latch"]
+  [data-slot="agent-row"]
+  > div:last-child
+  > span:first-child {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+:root[data-skin="latch"]
+  [data-slot="agent-row"]
+  > div:last-child
+  > span:last-child {
+  font-size: 0.6875rem;
+}
+
+/* The sidebar's search box is a round pill on the raised grey, as Latch's search is. */
+:root[data-skin="latch"] [data-slot="sidebar"] [data-slot="input-group"] {
+  border-color: transparent;
+  border-radius: 9999px;
+  background: var(--latch-raised);
+}
+
+/* Sidebar rows: 14px names, icons in the accent, the open page tinted with the accent. */
+:root[data-skin="latch"]
+  [data-slot="sidebar-footer"]
+  [data-slot="sidebar-menu-button"]
+  svg {
+  color: var(--latch-accent);
+}
+
+:root[data-skin="latch"]
+  [data-slot="sidebar-content"]
+  [data-slot="sidebar-menu-button"][data-status="active"],
+:root[data-skin="latch"]
+  [data-slot="sidebar-content"]
+  [data-slot="sidebar-menu-button"][aria-current="page"] {
+  background: var(--sidebar-accent);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * The phone (see frame.tsx and home.tsx), laid out like Latch's own phone screens.
+ * ------------------------------------------------------------------------------------------- */
+
+/* The bottom bar: three icons and no labels, on the page colour. */
+:root[data-skin="latch"] [data-slot="latch-bar"] {
+  display: flex;
+  flex-shrink: 0;
+  height: 3.25rem;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--background);
+}
+
+:root[data-skin="latch"] [data-slot="latch-bar-item"] {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+}
+
+:root[data-skin="latch"] [data-slot="latch-bar-item"] svg {
+  width: 1.625rem;
+  height: 1.625rem;
+}
+
+/* Both sheets: a grab handle, then small cards 4px apart, 12px in from the sides. */
+:root[data-skin="latch"] [data-slot="latch-menu"],
+:root[data-skin="latch"] [data-slot="latch-tools"] {
+  gap: 0.25rem;
+  max-height: 88svh;
+  overflow-y: auto;
+  padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: var(--latch-menu-sheet);
+  box-shadow: none;
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-handle"] {
+  width: 2rem;
+  height: 3px;
+  margin: 0.25rem auto 0.75rem;
+  border-radius: 9999px;
+  background: var(--latch-menu-grey);
+  opacity: 0.6;
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-card"] {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: var(--latch-menu-card);
+}
+
+/* A card of four: a 22px icon over an 11px label, in the text colour. */
+:root[data-skin="latch"] [data-slot="latch-menu-card"][data-grid],
+:root[data-skin="latch"] [data-slot="latch-menu-nav"] {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  padding: 0.5rem 0.25rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-tile"] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.375rem 0.25rem;
+  border-radius: 0.625rem;
+  color: var(--foreground);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-tile"]:active {
+  background: var(--latch-raised);
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-tile"]:disabled {
+  opacity: 0.4;
+}
+
+:root[data-skin="latch"] [data-slot="latch-tile-icon"] {
+  display: grid;
+  place-items: center;
+}
+
+:root[data-skin="latch"] [data-slot="latch-tile-icon"] svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-tile"][data-danger] {
+  color: var(--destructive);
+}
+
+/* Back / Forward / Share / Refresh: no card, smaller. */
+:root[data-skin="latch"]
+  [data-slot="latch-menu-nav"]
+  [data-slot="latch-menu-tile"] {
+  font-size: 0.625rem;
+}
+
+:root[data-skin="latch"]
+  [data-slot="latch-menu-nav"]
+  [data-slot="latch-tile-icon"]
+  svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* A list row: 20px icon, the name, an arrow; lines start under the name. */
+:root[data-skin="latch"] [data-slot="latch-menu-row"],
+:root[data-skin="latch"] [data-slot="latch-menu-wide"] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.625rem 0.875rem;
+  color: var(--foreground);
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-row"]:active,
+:root[data-skin="latch"] [data-slot="latch-menu-wide"]:active {
+  background: var(--latch-raised);
+}
+
+:root[data-skin="latch"]
+  [data-slot="latch-menu-row"]
+  + [data-slot="latch-menu-row"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 3rem;
+  height: 0.5px;
+  background: var(--latch-menu-line);
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-row"] > svg:first-child {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* The wide row: its icon on a small tinted square, a grey line under the name. */
+:root[data-skin="latch"] [data-slot="latch-menu-wide-icon"] {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 0.5rem;
+  background: var(--latch-raised);
+  color: var(--latch-accent);
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-wide-icon"] svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-row-text"] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-row-name"] {
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-row-note"] {
+  color: var(--latch-menu-grey);
+  font-size: 0.75rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-menu-arrow"] {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: var(--latch-menu-grey);
+}
+
+/* Quick tools: a title, then round buttons four to a row. */
+:root[data-skin="latch"] [data-slot="latch-tools-title"] {
+  padding: 0.25rem 0.5rem 0.75rem;
+  border-bottom: 0.5px solid var(--latch-menu-line);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+:root[data-skin="latch"] [data-slot="latch-tools-grid"] {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: 0.75rem;
+  padding: 0.75rem 0;
+}
+
+:root[data-skin="latch"] [data-round] [data-slot="latch-tile-icon"] {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 9999px;
+  background: var(--latch-raised);
+}
+
+:root[data-skin="latch"] [data-round] {
+  font-size: 0.75rem;
+}
+
+/* ---- The phone's home screen. ---- */
+
+@media (max-width: 767px) {
+  /* Latch's home opens on the search pill, so the greeting and Explore Bots step aside. */
+  :root[data-skin="latch"] [data-slot="home-greeting"],
+  :root[data-skin="latch"] [data-slot="home-explore"] {
+    display: none;
+  }
+
+  /* The message box as Latch's round search pill. */
+  :root[data-skin="latch"] [data-slot="composer"] {
+    border-color: transparent;
+    border-radius: 1.75rem;
+    background: var(--latch-menu-card);
+  }
+}
+
+:root[data-skin="latch"] [data-slot="latch-home-top"] {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.25rem;
+  height: 3.5rem;
+  padding: 0 0.75rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-top-button"] {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  color: var(--foreground);
+}
+
+:root[data-skin="latch"] [data-slot="latch-top-button"] svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-count"] {
+  display: grid;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.25rem;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+:root[data-skin="latch"] [data-slot="latch-home"] {
+  width: 100%;
+  max-width: 42rem;
+  margin-top: 1.25rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-shortcuts"] {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: 1rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-shortcut"] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-shortcut-face"] {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--latch-raised);
+  color: var(--foreground);
+}
+
+:root[data-skin="latch"]
+  [data-slot="latch-shortcut-face"]
+  svg:not([role="img"]) {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-shortcut-label"] {
+  max-width: 4.5rem;
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:root[data-skin="latch"] [data-slot="latch-home-head"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.75rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-home-head"] h2 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+:root[data-skin="latch"] [data-slot="latch-home-head"] button {
+  color: var(--latch-accent);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+:root[data-skin="latch"] [data-slot="latch-recents"] {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  overflow-x: auto;
+}
+
+:root[data-skin="latch"] [data-slot="latch-recent"] {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--latch-raised);
+}
+
+/* The status card, as Latch's shield card: a small grey heading, two numbers side by side. */
+:root[data-skin="latch"] [data-slot="latch-status"] {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: var(--latch-menu-card);
+}
+
+:root[data-skin="latch"] [data-slot="latch-status-head"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+:root[data-skin="latch"] [data-slot="latch-status-head"] > span {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-status-head"] svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-status-head"] a {
+  color: var(--latch-accent);
+}
+
+:root[data-skin="latch"] [data-slot="latch-status-stats"] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 0.75rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-status-stats"] > div {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+:root[data-skin="latch"] [data-slot="latch-status-stats"] > div + div {
+  padding-left: 1rem;
+  border-left: 0.5px solid var(--latch-card-border);
+}
+
+:root[data-skin="latch"] [data-slot="latch-status-stats"] svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--latch-accent);
+}
+
+:root[data-skin="latch"] [data-slot="latch-status-stats"] strong {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+:root[data-skin="latch"] [data-slot="latch-status-stats"] strong + span {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
