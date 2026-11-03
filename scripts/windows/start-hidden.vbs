@@ -6,6 +6,7 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 root = fso.GetParentFolderName(fso.GetParentFolderName(fso.GetParentFolderName(WScript.ScriptFullName)))
 programs = shell.ExpandEnvironmentStrings("%ProgramFiles%")
 bash = programs & "\Git\bin\bash.exe"
+If fso.FileExists(root & "\.git-bash-path") Then bash = Trim(Replace(Replace(fso.OpenTextFile(root & "\.git-bash-path").ReadAll, vbCr, ""), vbLf, ""))
 docker = programs & "\Docker\Docker\Docker Desktop.exe"
 
 ' Docker has to be running first; start it quietly if it isn't.
