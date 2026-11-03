@@ -28,8 +28,16 @@ const RANK: Record<RuleBehaviour, number> = {
   hand_off: 3,
 };
 
-/** `*` matches any run of characters; everything else is literal and the whole value must match. */
+/**
+ * `*` matches any run of characters; everything else is literal and the whole value must match.
+ * `|` separates alternatives, any one of which may match, so one plain choice in Settings, such as
+ * "Websites", is one rule naming every browser tool rather than a row per tool.
+ */
 export function globMatches(pattern: string, value: string): boolean {
+  if (pattern.includes("|"))
+    return pattern
+      .split("|")
+      .some((part) => part !== "" && globMatches(part, value));
   if (pattern === "*") return true;
   const source = pattern
     .split("*")

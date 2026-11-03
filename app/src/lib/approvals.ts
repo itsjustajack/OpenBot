@@ -20,10 +20,10 @@ export type ApprovalRuleInput = {
 };
 export type ApprovalRuleRow = ApprovalRuleInput & { id: string };
 export const BEHAVIOUR_LABELS: Record<RuleBehaviour, string> = {
-  allow: "Take action without asking",
-  pre_approved: "Take action if pre-approved",
-  ask: "Ask before taking action",
-  hand_off: "Hand off to you",
+  allow: "Just do it",
+  pre_approved: "Only if I asked for it",
+  ask: "Ask me first",
+  hand_off: "Never (left to you)",
 };
 export type ApprovalInboxData = {
   enabled: boolean;

@@ -156,18 +156,16 @@ function draw(screen: ReactNode = <ApprovalSettings />) {
 
 test("team rules are locked for members, enforced auto-review is shown as required, and the host cap is named", async () => {
   const view = draw(<ApprovalSettings />);
-  await view.findByText("Ask before taking action (team rule)");
+  await view.findByText("Ask me first (team rule)");
   const mine = view.getByRole("combobox", {
     name: "Behaviour for mcp/gmail/*",
   });
-  expect(mine.textContent).toContain("Take action without asking");
+  expect(mine.textContent).toContain("Just do it");
   expect(view.getByText("Locked")).toBeTruthy();
-  const review = view.getByRole("switch", { name: "Auto-review" });
+  const review = view.getByRole("switch", { name: "Double-check risky steps" });
   expect(review.getAttribute("aria-checked")).toBe("true");
   expect(view.getByText(/An admin requires this/)).toBeTruthy();
-  expect(
-    view.getByText(/An admin limits this to "Ask every time"/),
-  ).toBeTruthy();
+  expect(view.getByText(/An admin limits this to "Ask me first"/)).toBeTruthy();
   expect(view.queryByText("Team settings")).toBeNull();
 });
 
@@ -179,7 +177,7 @@ test("a member changes a saved rule in place", async () => {
   const user = userEvent.setup({ document });
   await user.click(mine);
   await user.click(
-    await view.findByRole("option", { name: "Hand off to you" }),
+    await view.findByRole("option", { name: "Never (left to you)" }),
   );
   await waitFor(() =>
     expect(sent).toContainEqual({
@@ -193,65 +191,102 @@ test("a member changes a saved rule in place", async () => {
   ).toBeNull();
 });
 
-test("a member adds a rule with one of the four behaviours", async () => {
+test("a member makes a plain choice by tapping, and is told in plain words what it allows first", async () => {
   const view = draw(<ApprovalSettings />);
-  await view.findByText("Add a rule");
-  const user = userEvent.setup({ document });
-  await user.click(view.getByRole("button", { name: /Add a rule/ }));
-  await user.type(
-    await view.findByRole("textbox", { name: "Tool or app" }),
-    "mcp/slack/*",
+  fireEvent.click(await view.findByRole("button", { name: /Add a choice/ }));
+  const dialog = await view.findByRole("dialog");
+  // No boxes to type code into.
+  expect(within(dialog).queryByRole("textbox")).toBeNull();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Email" }));
+  fireEvent.click(
+    within(dialog).getByRole("button", { name: "Changing or sending" }),
   );
-  // Rules here apply to every Bot, so there is no Bot to name.
-  expect(view.queryByRole("textbox", { name: "Bot" })).toBeNull();
-  await user.click(view.getByRole("combobox", { name: "Behaviour" }));
-  await user.click(
-    await view.findByRole("option", { name: "Take action if pre-approved" }),
-  );
-  await user.click(view.getByRole("button", { name: "Save rule" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Never" }));
+  expect(
+    within(dialog).getByText(
+      "All your Bots leave sending or deleting email to you.",
+    ),
+  ).toBeTruthy();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
   await waitFor(() =>
     expect(sent).toContainEqual({
       path: "/api/approvals/rules",
       method: "POST",
       body: {
         botId: "*",
-        toolRef: "mcp/slack/*",
-        effect: "*",
+        toolRef: "*mail*|*outlook*",
+        effect: "write",
         scope: "*",
-        behaviour: "pre_approved",
+        behaviour: "hand_off",
       },
     }),
   );
+  await waitFor(() => expect(view.queryByRole("dialog")).toBeNull());
 });
 
-test("a rule that is not saved keeps the dialog open, with what was typed and why", async () => {
-  refuseRule = "That tool is not one a Bot can use.";
+test("a choice already made is changed in place, not saved twice", async () => {
+  inboxOverride = {
+    rules: [
+      {
+        id: "websites-change",
+        botId: "*",
+        toolRef:
+          "computer_navigate|computer_read|computer_snapshot|computer_screenshot|computer_scroll|computer_click|computer_type|computer_key|computer_download_file",
+        effect: "write",
+        scope: "*",
+        behaviour: "ask",
+      },
+    ],
+  };
   const view = draw(<ApprovalSettings />);
-  await view.findByText("Add a rule");
-  const user = userEvent.setup({ document });
-  await user.click(view.getByRole("button", { name: /Add a rule/ }));
-  await user.type(
-    await view.findByRole("textbox", { name: "Tool or app" }),
-    "mcp/nowhere/*",
+  // Shown as the Websites row, in plain words, and not as a rule of code.
+  const row = await view.findByRole("button", { name: /^Websites/ });
+  expect(row.textContent).toContain(
+    "Clicking, typing or filling in forms on websites: ask me first",
   );
-  await user.click(view.getByRole("button", { name: "Save rule" }));
+  expect(view.queryByText(/computer_navigate/)).toBeNull();
+  fireEvent.click(row);
   const dialog = await view.findByRole("dialog");
-  expect((await within(dialog).findByRole("alert")).textContent).toContain(
-    "That tool is not one a Bot can use.",
+  fireEvent.click(within(dialog).getByRole("button", { name: "Just do it" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(sent).toContainEqual({
+      path: "/api/approvals/rules/websites-change",
+      method: "PATCH",
+      body: { behaviour: "allow" },
+    }),
   );
-  expect(
-    (
-      within(dialog).getByRole("textbox", {
-        name: "Tool or app",
-      }) as HTMLInputElement
-    ).value,
-  ).toBe("mcp/nowhere/*");
-  // Saved the second time, the dialog closes.
-  await user.click(within(dialog).getByRole("button", { name: "Save rule" }));
+  expect(sent.some((request) => request.method === "POST")).toBeFalse();
+});
+
+test("the top of the page says what every Bot can do right now", async () => {
+  inboxOverride = { enabled: true, rules: [] };
+  const view = draw(<ApprovalSettings />);
+  const summary = await view.findByRole("list", {
+    name: "What your Bots can do right now",
+  });
+  expect(summary.textContent).toContain(
+    "Your Bots go ahead with reading your email, looking at websites and opening files without asking.",
+  );
+  expect(summary.textContent).toContain(
+    "They ask you first before sending or deleting email",
+  );
+  expect(summary.textContent).toContain(
+    "Passwords, security settings and payments always come to you.",
+  );
+});
+
+test("a choice that is not saved keeps the dialog open and says why", async () => {
+  refuseRule = "That could not be saved.";
+  const view = draw(<ApprovalSettings />);
+  fireEvent.click(await view.findByRole("button", { name: /Add a choice/ }));
+  const dialog = await view.findByRole("dialog");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+  expect((await within(dialog).findByRole("alert")).textContent).toContain(
+    "That could not be saved.",
+  );
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull());
-  expect(
-    sent.filter((request) => request.path === "/api/approvals/rules"),
-  ).toHaveLength(2);
 });
 
 test("two rules for one tool are told apart by the rest of what they match, never cut short", async () => {
@@ -294,7 +329,10 @@ test("with personal rules switched off by the team, they are shown as not applyi
       /An admin has turned off personal rules\. Yours are kept but don't apply\./,
     ),
   ).toBeTruthy();
-  expect(view.queryByText("Add a rule")).toBeNull();
+  expect(
+    (view.getByRole("button", { name: /Add a choice/ }) as HTMLButtonElement)
+      .disabled,
+  ).toBeTrue();
 });
 
 test("an administrator is told where team settings are", async () => {
@@ -306,7 +344,7 @@ test("an administrator is told where team settings are", async () => {
 
 test("a member is not pointed at Admin", async () => {
   const view = draw(<ApprovalSettings />);
-  await view.findByText("Rules for every Bot");
+  await view.findByText("Other rules");
   expect(view.queryByRole("link", { name: "Admin → Approvals" })).toBeNull();
 });
 
