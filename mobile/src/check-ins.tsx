@@ -7,6 +7,7 @@ import {
   type StartedItem,
   type TaskStatus,
 } from "./api";
+import type { Theme } from "./theme";
 import { card, colors, muted } from "./ui";
 
 /*
@@ -97,19 +98,38 @@ export function ItemCard({
   busy,
   onStart,
   onHide,
+  theme,
 }: {
   item: CheckInItem;
   botName: string;
   busy: string;
   onStart: () => void;
   onHide: () => void;
+  /** On a Latch-styled screen: the theme's card and text colours. */
+  theme?: Theme;
 }) {
   const link = webLink(item.sourceLink);
   return (
-    <View style={card}>
-      <Text style={{ fontSize: 17, fontWeight: "600" }}>{item.title}</Text>
-      {item.detail ? <Text>{item.detail}</Text> : null}
-      <Text style={muted}>
+    <View
+      style={[
+        card,
+        theme
+          ? {
+              backgroundColor: theme.card,
+              borderColor: theme.dark ? "#2E2F30" : "#ECEDEF",
+              borderRadius: 18,
+              padding: 16,
+            }
+          : null,
+      ]}
+    >
+      <Text style={{ fontSize: 17, fontWeight: "600", color: theme?.text }}>
+        {item.title}
+      </Text>
+      {item.detail ? (
+        <Text style={{ color: theme?.text }}>{item.detail}</Text>
+      ) : null}
+      <Text style={theme ? { color: theme.grey } : muted}>
         {[botName, item.sourceApp ? `From ${item.sourceApp}` : null]
           .filter(Boolean)
           .join(" · ")}

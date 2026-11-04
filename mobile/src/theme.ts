@@ -52,22 +52,22 @@ export function useTheme(): Theme {
   return useColorScheme() === "light" ? LIGHT : DARK;
 }
 
-/** Two soft colours per face, blended in the round avatar. Picked by name so a Bot keeps its colours. */
-const FACES: [string, string][] = [
-  ["#F5A623", "#E85D9E"],
-  ["#C2187A", "#D99BE0"],
-  ["#8DA2D6", "#B0148C"],
-  ["#2E8B57", "#8DA2D6"],
-  ["#4C8DF6", "#6FD3C1"],
-  ["#F06A4A", "#F7C948"],
-  ["#7B61FF", "#E28BF2"],
-  ["#2BB673", "#F5D547"],
+/** One soft colour per face. Picked by name so a Bot always keeps its colour. */
+const FACES = [
+  "#D98BE8",
+  "#F2A94E",
+  "#4F8FF0",
+  "#5CC08A",
+  "#F27A7A",
+  "#48C1C9",
+  "#A88BF0",
+  "#E8C547",
 ];
 
-export function faceColours(name: string): [string, string] {
+export function faceColour(name: string): string {
   let sum = 0;
   for (const letter of name) sum = (sum * 31 + letter.charCodeAt(0)) >>> 0;
-  return FACES[sum % FACES.length] ?? FACES[0] ?? ["#888", "#aaa"];
+  return FACES[sum % FACES.length] ?? "#4F8FF0";
 }
 
 /** "Good morning", "Good afternoon" or "Good evening" by the phone's clock. */
