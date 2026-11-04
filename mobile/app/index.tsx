@@ -125,6 +125,12 @@ function SignedInMenu({ theme }: { theme: Theme }) {
       onPress: go("/approvals"),
     },
     {
+      key: "rules",
+      title: "What your Bots can do",
+      about: "Choose in plain words, or stop them all",
+      onPress: go("/rules"),
+    },
+    {
       key: "bots",
       title: "Bots, routines and computers",
       onPress: go("/bots"),

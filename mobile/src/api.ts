@@ -169,9 +169,17 @@ export type ApprovalSettings = {
   enabled: boolean;
   rules: ApprovalRule[];
   teamRules: ApprovalRule[];
-  preferences?: { enabled: boolean; autoReview: boolean };
+  preferences?: {
+    enabled: boolean;
+    autoReview: boolean;
+    hostCommands?: HostCommandPolicy;
+  };
   team?: { enforceAutoReview: boolean; customRulesEnabled: boolean };
+  /** Commands on the person's own PC, after any team limit. */
+  hostCommands?: HostCommandPolicy;
 };
+/** Running programs on the person's own PC: ask first, just do it, or never. */
+export type HostCommandPolicy = "ask" | "allow" | "never";
 export type GrantedPlugins = {
   tools: { ref: string; description: string }[];
   skills: { slug: string; title: string; summary: string }[];
