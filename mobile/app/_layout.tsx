@@ -48,7 +48,7 @@ export default function Layout() {
       <Stack.Screen name="computer" options={{ title: "Computer" }} />
       <Stack.Screen name="routine" options={{ title: "Routine" }} />
       <Stack.Screen name="memory" options={{ title: "Memory" }} />
-      <Stack.Screen name="rules" options={{ title: "Custom rules" }} />
+      <Stack.Screen name="rules" options={{ headerShown: false }} />
       <Stack.Screen name="plugins" options={{ title: "Plugins" }} />
       <Stack.Screen
         name="phone-bot"
