@@ -1,5 +1,5 @@
-import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Button,
   Pressable,
@@ -50,6 +50,15 @@ export default function PhoneBot() {
   } | null>(null);
   const [saved, setSaved] = useState(load);
   const available = needleAvailable();
+  // Asked from the Home screen's box: answered straight away, once.
+  const { ask: asked } = useLocalSearchParams<{ ask?: string }>();
+  const answered = useRef<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new question from Home is asked
+  useEffect(() => {
+    if (!asked || answered.current === asked) return;
+    answered.current = asked;
+    void ask(asked);
+  }, [asked]);
 
   const refresh = useCallback(() => setSaved(load()), []);
   useFocusEffect(
@@ -78,8 +87,8 @@ export default function PhoneBot() {
     refresh();
   }
 
-  async function ask() {
-    const you = text.trim();
+  async function ask(given?: string) {
+    const you = (given ?? text).trim();
     if (!you || busy) return;
     setBusy(true);
     setUnsure(null);

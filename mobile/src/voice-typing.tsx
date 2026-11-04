@@ -4,6 +4,7 @@ import {
 } from "expo-speech-recognition";
 import { useRef, useState } from "react";
 import { Linking, Platform, Pressable, Text, View } from "react-native";
+import type { Theme } from "./theme";
 import { colors } from "./ui";
 
 /**
@@ -56,11 +57,17 @@ export function VoiceTypingButton({
   text,
   onText,
   disabled,
+  theme,
 }: {
   text: string;
   onText: (next: string) => void;
   disabled?: boolean;
+  /** On a themed screen the mic is a small quiet circle and messages use the theme's colours. */
+  theme?: Theme;
 }) {
+  const errorColor = theme?.error ?? colors.error;
+  const greyColor = theme?.grey ?? colors.muted;
+  const linkColor = theme?.accent ?? colors.link;
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   // What was typed when listening started, plus every finished phrase since.
   const kept = useRef("");
@@ -176,19 +183,28 @@ export function VoiceTypingButton({
         style={{
           alignItems: "center",
           justifyContent: "center",
-          width: 44,
-          height: 44,
+          width: theme ? 36 : 44,
+          height: theme ? 36 : 44,
           borderRadius: 22,
-          backgroundColor: listening ? colors.error : colors.link,
+          backgroundColor: listening
+            ? errorColor
+            : theme
+              ? theme.raised
+              : colors.link,
           opacity: disabled ? 0.4 : 1,
         }}
       >
-        <Text style={{ color: "#ffffff", fontSize: 18 }}>
+        <Text
+          style={{
+            color: listening && theme ? theme.page : "#ffffff",
+            fontSize: theme ? 16 : 18,
+          }}
+        >
           {listening ? "■" : "🎤"}
         </Text>
       </Pressable>
       {listening ? (
-        <Text style={{ flex: 1, color: colors.muted }}>
+        <Text style={{ flex: 1, color: greyColor }}>
           Listening on the phone. Tap ■ to stop.
         </Text>
       ) : null}
@@ -198,13 +214,13 @@ export function VoiceTypingButton({
           style={{ flex: 1 }}
           onPress={() => void getPack(status.lang)}
         >
-          <Text style={{ color: colors.link }}>
+          <Text style={{ color: linkColor }}>
             Get the speech pack (one time, then it works offline)
           </Text>
         </Pressable>
       ) : null}
       {status.kind === "getting-pack" ? (
-        <Text style={{ flex: 1, color: colors.muted }}>
+        <Text style={{ flex: 1, color: greyColor }}>
           Getting the speech pack…
         </Text>
       ) : null}
@@ -217,7 +233,7 @@ export function VoiceTypingButton({
         >
           <Text
             style={{
-              color: colors.error,
+              color: errorColor,
               textDecorationLine: status.settings ? "underline" : "none",
             }}
           >
