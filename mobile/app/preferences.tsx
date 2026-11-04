@@ -1,5 +1,7 @@
 import Constants from "expo-constants";
-import { Pressable, Text, View } from "react-native";
+import { useState } from "react";
+import { Platform, Pressable, Text, View } from "react-native";
+import { requestPinWidget } from "react-native-android-widget";
 import { serverConfigured, serverUrl } from "../src/auth";
 import { SectionLabel } from "../src/home-screen";
 import { Chips, LatchPage, SwitchCard } from "../src/page";
@@ -10,6 +12,25 @@ import {
   usePreferences,
 } from "../src/preferences";
 import { ACCENTS, type Theme, useTheme } from "../src/theme";
+import { WIDGETS } from "../src/widgets";
+
+const WIDGET_ROWS = [
+  {
+    name: WIDGETS.ask,
+    title: "Ask a Bot",
+    about: "A box that opens the Phone Bot",
+  },
+  {
+    name: WIDGETS.quick,
+    title: "Quick starts",
+    about: "Remind me, Save a note, My notes",
+  },
+  {
+    name: WIDGETS.notes,
+    title: "My notes",
+    about: "Your newest notes, and a button for another",
+  },
+];
 
 const LOOKS: { value: LookMode; label: string }[] = [
   { value: "phone", label: "Match my phone" },
@@ -47,6 +68,7 @@ function Card({
 export default function PreferencesScreen() {
   const theme = useTheme();
   const preferences = usePreferences();
+  const [widgetNote, setWidgetNote] = useState("");
   const version =
     Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? "";
 
@@ -157,6 +179,75 @@ export default function PreferencesScreen() {
         title="Always check with me first"
         value={preferences.phoneBotAlwaysAsks}
       />
+
+      {Platform.OS === "android" ? (
+        <>
+          <SectionLabel text="Home screen widgets" theme={theme} />
+          <Card theme={theme}>
+            {WIDGET_ROWS.map((widget) => (
+              <View
+                key={widget.name}
+                style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+              >
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text
+                    style={{
+                      color: theme.text,
+                      fontSize: 15,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {widget.title}
+                  </Text>
+                  <Text style={{ color: theme.grey, fontSize: 13 }}>
+                    {widget.about}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityLabel={`Add ${widget.title} to your home screen`}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setWidgetNote("");
+                    requestPinWidget({ widgetName: widget.name })
+                      .then((asked) => {
+                        if (!asked)
+                          setWidgetNote(
+                            "Your phone can't add it from here. Hold an empty spot on your home screen, tap Widgets, and find OpenBot.",
+                          );
+                      })
+                      .catch(() =>
+                        setWidgetNote(
+                          "Hold an empty spot on your home screen, tap Widgets, and find OpenBot.",
+                        ),
+                      );
+                  }}
+                  style={{
+                    backgroundColor: theme.accent,
+                    borderRadius: 999,
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.onAccent,
+                      fontSize: 13,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Add
+                  </Text>
+                </Pressable>
+              </View>
+            ))}
+            {widgetNote ? (
+              <Text style={{ color: theme.grey, fontSize: 13 }}>
+                {widgetNote}
+              </Text>
+            ) : null}
+          </Card>
+        </>
+      ) : null}
 
       <SectionLabel text="Your PC" theme={theme} />
       <Card theme={theme}>

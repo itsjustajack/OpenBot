@@ -2,7 +2,7 @@
   "name": "openbot-mobile",
   "version": "0.0.1",
   "private": true,
-  "main": "expo-router/entry",
+  "main": "index.js",
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",
@@ -32,6 +32,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.10",
+    "react-native-android-widget": "0.22.1",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0"
   },

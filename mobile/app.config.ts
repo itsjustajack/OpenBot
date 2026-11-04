@@ -14,6 +14,44 @@ const config: ExpoConfig = {
     "./modules/needle/app.plugin.js",
     ["expo-notifications", { defaultChannel: "openbot" }],
     [
+      "react-native-android-widget",
+      {
+        widgets: [
+          {
+            name: "AskPhoneBot",
+            label: "Ask a Bot",
+            description: "Opens the Phone Bot. Works with no signal.",
+            minWidth: "250dp",
+            minHeight: "50dp",
+            targetCellWidth: 4,
+            targetCellHeight: 1,
+            resizeMode: "horizontal",
+          },
+          {
+            name: "QuickStarts",
+            label: "Quick starts",
+            description: "Remind me, save a note, or see your notes.",
+            minWidth: "250dp",
+            minHeight: "50dp",
+            targetCellWidth: 4,
+            targetCellHeight: 1,
+            resizeMode: "horizontal",
+          },
+          {
+            name: "PhoneNotes",
+            label: "My notes",
+            description: "Your newest notes on this phone.",
+            minWidth: "250dp",
+            minHeight: "180dp",
+            targetCellWidth: 4,
+            targetCellHeight: 2,
+            resizeMode: "horizontal|vertical",
+            updatePeriodMillis: 1800000,
+          },
+        ],
+      },
+    ],
+    [
       "expo-speech-recognition",
       {
         microphonePermission:

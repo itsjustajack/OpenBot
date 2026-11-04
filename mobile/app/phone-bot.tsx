@@ -36,6 +36,7 @@ import {
 } from "../src/phone-bot";
 import { getPreferences } from "../src/preferences";
 import { useTheme } from "../src/theme";
+import { refreshNotesWidget } from "../src/widgets";
 
 const NAME = "Phone Bot";
 
@@ -73,7 +74,10 @@ export default function PhoneBot() {
   const [showNotes, setShowNotes] = useState(false);
   const scroller = useRef<ScrollView>(null);
   // Asked from the Home screen's box: answered straight away, once.
-  const { ask: asked } = useLocalSearchParams<{ ask?: string }>();
+  const { ask: asked, draft } = useLocalSearchParams<{
+    ask?: string;
+    draft?: string;
+  }>();
   const answered = useRef<string | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: only a new question from Home is asked
   useEffect(() => {
@@ -81,6 +85,13 @@ export default function PhoneBot() {
     answered.current = asked;
     void ask(asked);
   }, [asked]);
+
+  // Opened from a widget with words to finish, such as "Note: ": put them in the box.
+  useEffect(() => {
+    if (draft) setText(draft);
+  }, [draft]);
+  // Keep the notes widget on the home screen in step with the notes here.
+  useEffect(() => refreshNotesWidget(saved.notes), [saved.notes]);
 
   const refresh = useCallback(() => setSaved(load()), []);
   useFocusEffect(
