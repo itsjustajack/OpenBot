@@ -1,17 +1,8 @@
-import {
-  IconChecklist,
-  IconEyeCheck,
-  IconHandStop,
-  IconTerminal2,
-} from "@tabler/icons-react";
+import { IconEyeCheck, IconHandStop } from "@tabler/icons-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Fragment } from "react";
-import {
-  PageEmpty,
-  PageRows,
-  PageSection,
-} from "@/components/layout/page-shell";
+import { PageRows, PageSection } from "@/components/layout/page-shell";
 import {
   Item,
   ItemActions,
@@ -26,14 +17,15 @@ import { agentListQueryOptions } from "@/lib/agents/queries";
 import {
   approvalInboxOptions,
   approvalPreferencesMutationOptions,
-  createApprovalRuleMutationOptions,
   revokeApprovalRuleMutationOptions,
   ruleCoversBot,
   updateApprovalRuleMutationOptions,
 } from "@/lib/approvals";
 import { currentUserQueryOptions } from "@/lib/auth/queries";
+import { plainChoiceOf } from "@/lib/plain-approvals";
 import { queryClient } from "@/query-client";
-import { HOST_LABELS, LabelSelect, RuleForm, RuleRow } from "./rules";
+import { PlainChoices, PlainSummary } from "./plain-choices";
+import { RuleRow } from "./rules";
 
 /**
  * The person's own approval settings: whether their Bots ask before changing things, and the rules
@@ -48,7 +40,6 @@ export function ApprovalSettings() {
   const preferences = useMutation(
     approvalPreferencesMutationOptions(queryClient),
   );
-  const addRule = useMutation(createApprovalRuleMutationOptions(queryClient));
   const changeRule = useMutation(
     updateApprovalRuleMutationOptions(queryClient),
   );
@@ -58,8 +49,9 @@ export function ApprovalSettings() {
   if (inbox.isPending && !error) return null;
   const enforced = inbox.data?.team?.enforceAutoReview ?? false;
   const rulesOff = inbox.data?.team?.customRulesEnabled === false;
+  // The plain choices are shown as rows of their own; everything else for every Bot is listed below.
   const everyBot = (inbox.data?.rules ?? []).filter(
-    (rule) => rule.botId === "*",
+    (rule) => rule.botId === "*" && !plainChoiceOf(rule),
   );
   /*
    * Rules that name no Bot this person can open — a Bot since deleted, or a name typed where an id
@@ -73,7 +65,6 @@ export function ApprovalSettings() {
         !reachable.some((agent) => ruleCoversBot(rule.botId, agent.id))),
   );
   const teamRules = inbox.data?.teamRules ?? [];
-  const canAdd = Boolean(inbox.data?.preferences) && !rulesOff;
   const saved = teamRules.length + everyBot.length;
 
   return (
@@ -92,21 +83,56 @@ export function ApprovalSettings() {
           .
         </p>
       ) : null}
-      <PageSection title="Before a Bot acts">
+      {inbox.data ? (
+        <PageSection title="Right now">
+          <PlainSummary data={inbox.data} />
+        </PageSection>
+      ) : null}
+      {inbox.data?.preferences ? (
+        <PageSection
+          description={
+            <>
+              These apply to all your Bots. Tap one to change it.
+              {rulesOff
+                ? " An admin has turned off personal rules. Yours are kept but don't apply."
+                : ""}
+            </>
+          }
+          title="Your choices"
+        >
+          <PlainChoices
+            bots={[
+              ...new Map(
+                reachable.map((agent) => [
+                  agent.id,
+                  { id: agent.id, name: agent.name ?? agent.id },
+                ]),
+              ).values(),
+            ]}
+            data={inbox.data}
+            disabled={rulesOff}
+            onHostCommands={(hostCommands) =>
+              preferences.mutate({ hostCommands })
+            }
+          />
+        </PageSection>
+      ) : null}
+      <PageSection title="Safety">
         <PageRows>
           <Item size="sm">
             <ItemMedia variant="icon">
               <IconHandStop />
             </ItemMedia>
             <ItemContent>
-              <ItemTitle>Ask before making changes</ItemTitle>
-              <ItemDescription>
-                Review a Bot's changes to websites, connected apps, and files.
+              <ItemTitle>Ask before other changes</ItemTitle>
+              <ItemDescription className="line-clamp-none">
+                For anything your choices above don't cover, Bots stop and ask
+                you before they change it.
               </ItemDescription>
             </ItemContent>
             <ItemActions>
               <Switch
-                aria-label="Ask before making changes"
+                aria-label="Ask before other changes"
                 checked={inbox.data?.enabled ?? false}
                 disabled={inbox.isLoading || preferences.isPending}
                 onCheckedChange={(enabled) => preferences.mutate({ enabled })}
@@ -121,15 +147,16 @@ export function ApprovalSettings() {
                   <IconEyeCheck />
                 </ItemMedia>
                 <ItemContent>
-                  <ItemTitle id="auto-review-title">Auto-review</ItemTitle>
+                  <ItemTitle id="auto-review-title">
+                    Double-check risky steps
+                  </ItemTitle>
                   <ItemDescription
                     className="line-clamp-none"
                     id="auto-review-description"
                   >
                     {enforced ? "An admin requires this. " : ""}
-                    Before a Bot does something that could affect your accounts
-                    or share information, OpenBot checks it against your request
-                    and your rules. If it can't tell, it asks you.
+                    Before a Bot sends or shares something, OpenBot checks it
+                    matches what you asked for. If it can't tell, it asks you.
                   </ItemDescription>
                 </ItemContent>
                 <ItemActions>
@@ -146,60 +173,24 @@ export function ApprovalSettings() {
                   />
                 </ItemActions>
               </Item>
-              <Separator />
-              <Item size="sm">
-                <ItemMedia variant="icon">
-                  <IconTerminal2 />
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>Commands on your computer</ItemTitle>
-                  <ItemDescription className="line-clamp-none">
-                    {inbox.data.hostCommands &&
-                    inbox.data.hostCommands !==
-                      inbox.data.preferences.hostCommands
-                      ? `An admin limits this to "${HOST_LABELS[inbox.data.hostCommands]}". `
-                      : ""}
-                    The OpenBot desktop app still shows you each command before
-                    it runs.
-                  </ItemDescription>
-                </ItemContent>
-                <ItemActions>
-                  <LabelSelect
-                    disabled={preferences.isPending}
-                    label="Commands on your computer"
-                    labels={HOST_LABELS}
-                    onChange={(hostCommands) =>
-                      preferences.mutate({ hostCommands })
-                    }
-                    value={inbox.data.preferences.hostCommands}
-                  />
-                </ItemActions>
-              </Item>
             </>
           ) : null}
         </PageRows>
       </PageSection>
-      <PageSection
-        description={
-          <>
-            The strictest matching rule wins. An "ask" rule beats an "allow"
-            rule. Team rules are locked. Passwords, security settings and
-            payments are always handed to you. Rules for one Bot are on{" "}
-            <Link className="underline underline-offset-4" to="/bots">
-              that Bot's page
-            </Link>
-            .
-            {rulesOff
-              ? " An admin has turned off personal rules. Yours are kept but don't apply."
-              : ""}
-          </>
-        }
-        title="Rules for every Bot"
-      >
-        {saved === 0 ? (
-          <PageEmpty icon={IconChecklist} title="No rules yet" />
-        ) : null}
-        {saved > 0 || canAdd ? (
+      {saved > 0 ? (
+        <PageSection
+          description={
+            <>
+              Rules from your team, or written another way. The strictest one
+              wins. Rules for one Bot are on{" "}
+              <Link className="underline underline-offset-4" to="/bots">
+                that Bot's page
+              </Link>
+              .
+            </>
+          }
+          title="Other rules"
+        >
           <PageRows>
             {teamRules.map((rule, index) => (
               <Fragment key={rule.id}>
@@ -228,15 +219,9 @@ export function ApprovalSettings() {
                 />
               </Fragment>
             ))}
-            {canAdd ? (
-              <>
-                {saved > 0 ? <Separator /> : null}
-                <RuleForm botField={false} label="Add a rule" save={addRule} />
-              </>
-            ) : null}
           </PageRows>
-        ) : null}
-      </PageSection>
+        </PageSection>
+      ) : null}
       {agents.data !== undefined && otherBots.length > 0 ? (
         <PageSection
           description="These don't match a Bot you can open. They still apply to any Bot they match. Remove the ones you don't want."

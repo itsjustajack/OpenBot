@@ -42,8 +42,8 @@ import {
 } from "@/lib/approvals";
 
 export const HOST_LABELS: Record<HostCommandPolicy, string> = {
-  ask: "Ask every time",
-  allow: "Always allow",
+  ask: "Ask me first",
+  allow: "Just do it",
   never: "Never",
 };
 

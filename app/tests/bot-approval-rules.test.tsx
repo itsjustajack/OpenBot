@@ -7,8 +7,13 @@ import {
   createRouter,
   RouterProvider,
 } from "@tanstack/react-router";
-import { cleanup, render, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { BotApprovalRules } from "@/components/approvals/bot-rules";
 import { settleReactWork } from "./settle-react-work";
 
@@ -80,7 +85,9 @@ function draw() {
   const router = createRouter({
     history: createMemoryHistory({ initialEntries: ["/"] }),
     routeTree: createRootRoute({
-      component: () => <BotApprovalRules agentId="expenses" />,
+      component: () => (
+        <BotApprovalRules agentId="expenses" agentName="Expenses" />
+      ),
     }),
   });
   return render(
@@ -107,28 +114,31 @@ test("only this Bot's own rules can be changed, and the team rules that reach it
   expect(view.queryByText(/^host\/\*/)).toBeNull();
 });
 
-test("a rule added here is for this Bot, with no Bot to type", async () => {
+test("a choice made here is for this Bot alone, with no Bot to pick, and says so in its name", async () => {
   serving();
   const view = draw();
-  await view.findByText("Add a rule");
-  const user = userEvent.setup({ document });
-  await user.click(view.getByRole("button", { name: /Add a rule/ }));
-  await user.type(
-    await view.findByRole("textbox", { name: "Tool or app" }),
-    "mcp/notion/*",
-  );
-  expect(view.queryByRole("textbox", { name: "Bot" })).toBeNull();
-  await user.click(view.getByRole("button", { name: "Save rule" }));
+  fireEvent.click(await view.findByRole("button", { name: /Add a choice/ }));
+  const dialog = await view.findByRole("dialog");
+  expect(within(dialog).queryByText("WHICH BOTS")).toBeNull();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Files" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Just do it" }));
+  expect(
+    within(dialog).getByText(
+      "Expenses goes ahead with saving, changing or deleting files without asking.",
+    ),
+  ).toBeTruthy();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
   await waitFor(() =>
     expect(sent).toContainEqual({
       path: "/api/approvals/rules",
       method: "POST",
       body: {
         botId: "expenses",
-        toolRef: "mcp/notion/*",
-        effect: "*",
+        toolRef:
+          "computer_read_file|computer_list_files|computer_write_file|*drive*|files/*",
+        effect: "write",
         scope: "*",
-        behaviour: "ask",
+        behaviour: "allow",
       },
     }),
   );

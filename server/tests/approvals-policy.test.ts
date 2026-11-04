@@ -93,6 +93,17 @@ describe("custom rules", () => {
     expect(globMatches("*", "anything")).toBeTrue();
   });
 
+  test("a | names several tools in one rule, as Settings' plain choices do", () => {
+    const websites = "computer_click|computer_type|computer_navigate";
+    expect(globMatches(websites, "computer_type")).toBeTrue();
+    expect(globMatches(websites, "computer_write_file")).toBeFalse();
+    expect(globMatches("*mail*|*outlook*", "mcp/gmail/send_email")).toBeTrue();
+    expect(globMatches("*mail*|*outlook*", "outlook/send")).toBeTrue();
+    expect(globMatches("*mail*|*outlook*", "computer_click")).toBeFalse();
+    // An empty alternative is not "match nothing" turned into "match everything".
+    expect(globMatches("a||", "")).toBeFalse();
+  });
+
   test("the four behaviours", async () => {
     const decide = (behaviour: ApprovalRule["behaviour"], extra = {}) =>
       decideAction({
