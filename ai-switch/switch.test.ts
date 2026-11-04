@@ -74,13 +74,12 @@ describe("AI switch", () => {
     }
   });
 
-  test("passes a real answer like a bad request straight back", async () => {
-    const { send, calls } = fakeFetch(
-      () => new Response("bad", { status: 400 }),
-    );
-    const response = await createSwitch(config, send).handle(ask());
-    expect(response.status).toBe(400);
-    expect(calls).toHaveLength(1);
+  test("goes offline on any other failure too, such as a sign-in that ran out", async () => {
+    for (const status of [400, 401, 404]) {
+      const { send } = fakeFetch(() => new Response("no", { status }));
+      const response = await createSwitch(config, send).handle(ask());
+      expect(await response.json()).toEqual({ from: "offline" });
+    }
   });
 
   test("stays offline for a while after a failure, then tries online again", async () => {

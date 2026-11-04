@@ -2,8 +2,8 @@
  * The AI switch: online AI first, the AI on this computer when the internet is gone.
  *
  * OpenBot and its Bots call this as if it were one OpenAI-compatible server. Each request goes to the
- * online AI (ONLINE_AI_URL, ONLINE_AI_KEY, ONLINE_AI_MODEL). When that can't be reached, is too busy
- * (429), or fails on its side (5xx), the same request goes to the offline AI instead (OFFLINE_AI_URL,
+ * online AI (ONLINE_AI_URL, ONLINE_AI_KEY, ONLINE_AI_MODEL). When that can't be reached or answers
+ * anything but a success, the same request goes to the offline AI instead (OFFLINE_AI_URL,
  * OFFLINE_AI_MODEL), so work never stops. After a failed try it stays offline for a minute before it
  * tries online again, so nobody waits on a dead connection message after message.
  *
@@ -41,9 +41,13 @@ export function configFromEnvironment(
   };
 }
 
-/** A failure that should send the request to the offline AI instead. */
+/**
+ * Any answer but a success sends the request to the offline AI instead. The online AI can fail in
+ * many ways when the internet goes (Ollama's online models answer 401, 404 or 502 depending on what
+ * broke), and the offline AI getting the same request is never worse than an error.
+ */
 export function shouldFallBack(status: number): boolean {
-  return status === 408 || status === 429 || status >= 500;
+  return status < 200 || status >= 300;
 }
 
 function join(base: string, path: string): string {

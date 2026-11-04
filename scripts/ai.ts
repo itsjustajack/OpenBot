@@ -8,6 +8,7 @@
  *   bun run ai needle on|off       Needle, a tiny helper that picks each message's tools in a blink
  *   bun run ai auto [model]        online AI first, this computer's AI (that model) when the internet is gone
  *   bun run ai gemini <key>        use Google's Gemini (free key from aistudio.google.com) as the online AI, then auto
+ *   bun run ai ollama-cloud        use Ollama's free online models (after `ollama signin`, no key), then auto
  *
  * Offline finds Ollama (11434) or LM Studio (1234) the same way Admin, Local AI does. Going offline
  * first keeps a copy of the online settings in `.env` (the ONLINE_SAVED_ lines), and going online puts
@@ -140,6 +141,66 @@ function pickGeminiModel(ids: string[]): string | undefined {
     .map((id) => id.replace(/^models\//, ""))
     .filter((id) => /^gemini-[\d.]+-flash$/.test(id))
     .sort((a, b) => version(b) - version(a))[0];
+}
+
+/**
+ * Ollama's online models, run through the Ollama already on this computer once it is signed in
+ * (`ollama signin`), so there is no key to copy. Each candidate is asked to say "ok"; the first that
+ * answers is the online AI. The switch reaches Ollama from its container by host.docker.internal.
+ */
+const OLLAMA_CLOUD_MODELS = [
+  "gpt-oss:120b-cloud",
+  "gpt-oss:20b-cloud",
+  "qwen3-coder:480b-cloud",
+  "deepseek-v3.1:671b-cloud",
+  "gemma4:cloud",
+];
+
+if (mode === "ollama-cloud") {
+  const wanted = process.argv[3]?.trim();
+  const candidates = wanted ? [wanted] : OLLAMA_CLOUD_MODELS;
+  let found: string | undefined;
+  for (const model of candidates) {
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:11434/v1/chat/completions",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: "Say ok." }],
+            max_tokens: 5,
+          }),
+          signal: AbortSignal.timeout(60_000),
+        },
+      );
+      if (response.ok) {
+        found = model;
+        break;
+      }
+      console.log(`${model}: not available (${response.status}).`);
+    } catch (error) {
+      console.log(`${model}: no answer (${(error as Error).message}).`);
+    }
+  }
+  if (!found) {
+    console.error(
+      "None of Ollama's online models answered. Check the internet, and run 'ollama signin' to sign in to Ollama. OpenBot keeps using this computer's AI. Nothing changed.",
+    );
+    process.exit(1);
+  }
+  writeFileSync(
+    ENV,
+    write(current, {
+      ONLINE_AI_URL: "http://host.docker.internal:11434/v1",
+      ONLINE_AI_KEY: null,
+      ONLINE_AI_MODEL: found,
+    }),
+  );
+  console.log(`Online AI set: ${found}, through Ollama. No key needed.`);
+  process.argv[2] = "auto";
+  process.argv.length = 3;
 }
 
 if (mode === "gemini") {
