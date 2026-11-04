@@ -24,6 +24,7 @@ import {
 import type { BotAccessCheck } from "./agents/profile-policy";
 import type { AgentProfileStore } from "./agents/profile-store";
 import { createAgentRoutes } from "./agents/routes";
+import { createAiStatusRoutes } from "./ai/status-routes";
 import { createApprovalRoutes } from "./approvals/routes";
 import type { ApprovalService } from "./approvals/service";
 import {
@@ -103,12 +104,12 @@ import {
   createPersonalLearningRoutes,
   type PersonalLearningRouteDeps,
 } from "./learning/sharing-routes";
+import { createLocalAiRoutes } from "./local-ai/routes";
+import { createMailRoutes } from "./mail/routes";
 import type { MemoryIngestion } from "./memory/ingestion";
 import { createMemoryRoutes } from "./memory/routes";
 import type { MemoryStore } from "./memory/store";
 import { parsePageLimit } from "./paging";
-import { createLocalAiRoutes } from "./local-ai/routes";
-import { createMailRoutes } from "./mail/routes";
 import { createPasswordRoutes, createSignInRoutes } from "./passwords/routes";
 import type { SignInService } from "./passwords/service";
 import type { OnboardingStore } from "./people/onboarding";
@@ -129,9 +130,6 @@ import { REFUSAL_MARKER, vendorAnswer } from "./plugins/tools";
 import type { ProactiveEngine } from "./proactive/engine";
 import { createProactiveRoutes } from "./proactive/routes";
 import type { ProactiveStore } from "./proactive/store";
-import { createTaskRoutes } from "./tasks/routes";
-import type { TaskRunner } from "./tasks/runner";
-import type { TaskStore } from "./tasks/store";
 import {
   type ModelProviderProxy,
   mountProviderOAuthProxy,
@@ -151,6 +149,9 @@ import type { IntentRouter } from "./routing/classify";
 import { createRoutingRoutes } from "./routing/routes";
 import { createCoworkerRoutingService } from "./routing/service";
 import type { SelfHostBanner } from "./self-host-banner";
+import { createTaskRoutes } from "./tasks/routes";
+import type { TaskRunner } from "./tasks/runner";
+import type { TaskStore } from "./tasks/store";
 import { createTeamBotRoutes } from "./team-bots/routes";
 import type { TeamBots } from "./team-bots/team-bots";
 import type { PackageStatusReader } from "./tenant-package";
@@ -1724,6 +1725,7 @@ export function createApp(
   }
   // A person's own mailbox for the Email tools. Answers 503 when the server has no mail service.
   app.route("/api/mail", createMailRoutes(requireUser));
+  app.route("/api/ai", createAiStatusRoutes(requireUser));
   if (coworker?.proactive)
     app.route(
       "/api/proactive",
