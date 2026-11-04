@@ -50,7 +50,10 @@ export default function Layout() {
       <Stack.Screen name="memory" options={{ title: "Memory" }} />
       <Stack.Screen name="rules" options={{ title: "Custom rules" }} />
       <Stack.Screen name="plugins" options={{ title: "Plugins" }} />
-      <Stack.Screen name="phone-bot" options={{ title: "Phone Bot" }} />
+      <Stack.Screen
+        name="phone-bot"
+        options={{ title: "Phone Bot", headerShown: false }}
+      />
     </Stack>
   );
 }
