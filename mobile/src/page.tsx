@@ -154,3 +154,68 @@ export function SwitchCard({
     </View>
   );
 }
+
+/** A row of round choices under a small grey label: tap one, the rest let go. */
+export function Chips<T extends string>({
+  theme,
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  theme: Theme;
+  label: string;
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <View style={{ gap: 8 }}>
+      <Text
+        style={{
+          color: theme.grey,
+          fontSize: 12,
+          fontWeight: "700",
+          letterSpacing: 1,
+        }}
+      >
+        {label.toUpperCase()}
+      </Text>
+      <View
+        accessibilityLabel={label}
+        accessibilityRole="radiogroup"
+        style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+      >
+        {options.map((option) => {
+          const on = option.value === value;
+          return (
+            <Pressable
+              accessibilityRole="radio"
+              accessibilityState={{ checked: on }}
+              key={option.value}
+              onPress={() => onChange(option.value)}
+              style={{
+                backgroundColor: on ? theme.accent : theme.card,
+                borderColor: on ? theme.accent : theme.border,
+                borderWidth: 1,
+                borderRadius: 999,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+              }}
+            >
+              <Text
+                style={{
+                  color: on ? theme.onAccent : theme.text,
+                  fontSize: 14,
+                  fontWeight: on ? "600" : "400",
+                }}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}

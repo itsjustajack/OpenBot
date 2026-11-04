@@ -64,11 +64,26 @@ export default function Home() {
     <HomeScreen
       bots={bots}
       footer={
-        !serverConfigured ? null : signedIn ? (
-          <SignedInMenu theme={theme} />
-        ) : (
-          <SignIn theme={theme} />
-        )
+        <>
+          {!serverConfigured ? null : signedIn ? (
+            <SignedInMenu theme={theme} />
+          ) : (
+            <SignIn theme={theme} />
+          )}
+          <MenuRows
+            label="This phone"
+            rows={[
+              {
+                key: "preferences",
+                title: "Preferences",
+                about:
+                  "Light or dark, colour, and how careful the Phone Bot is",
+                onPress: () => router.push("/preferences"),
+              },
+            ]}
+            theme={theme}
+          />
+        </>
       }
       hint={
         signedIn

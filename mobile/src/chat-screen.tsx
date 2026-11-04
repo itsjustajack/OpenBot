@@ -119,7 +119,7 @@ export function Bubble({
         >
           <Text
             style={{
-              color: you ? (theme.dark ? "#062E6F" : "#FFFFFF") : theme.text,
+              color: you ? theme.onAccent : theme.text,
               fontSize: 15,
               lineHeight: 21,
             }}
@@ -272,7 +272,7 @@ export function ChoiceCard({
         >
           <Text
             style={{
-              color: theme.dark ? "#062E6F" : "#FFFFFF",
+              color: theme.onAccent,
               fontSize: 15,
               fontWeight: "600",
             }}
