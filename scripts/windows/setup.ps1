@@ -144,17 +144,13 @@ if ($envText -notmatch "(?m)^\s*(CPK_INTELLIGENCE_API_KEY|INTELLIGENCE_API_KEY)=
 
 Say "Online AI first, this computer's AI when the internet is gone"
 $envText = Get-Content ".env" -Raw
-if ($envText -notmatch "(?m)^\s*ONLINE_AI_KEY=\S+") {
-  Write-Host "   OpenBot uses Google's Gemini online (free), and switches to the AI on this computer"
-  Write-Host "   by itself whenever the internet stops, so your work never stops."
-  Write-Host "   A Google page opens now. Sign in, click 'Create API key', and copy the key."
-  Start-Process "https://aistudio.google.com/apikey"
-  for ($try = 1; $try -le 3; $try++) {
-    $key = (Read-Host "   Paste the key here and press Enter (or just press Enter to skip for now)").Trim()
-    if (-not $key) { Fine "Skipped. OpenBot uses this computer's AI until you add a key."; break }
-    bun run ai gemini $key
-    if ($LASTEXITCODE -eq 0) { break }
-  }
+if ($envText -notmatch "(?m)^\s*ONLINE_AI_MODEL=\S+") {
+  Write-Host "   OpenBot uses Ollama's free online AI, and switches to the AI on this computer"
+  Write-Host "   by itself whenever the internet stops, so your work never stops. No key needed:"
+  Write-Host "   sign in to Ollama once. If a link shows below instead of a browser page, open it."
+  ollama signin
+  bun run ai ollama-cloud
+  if ($LASTEXITCODE -ne 0) { Fine "Online AI isn't ready, so OpenBot uses this computer's AI for now. Run setup again any time to try." }
 } else { Fine "Online AI already set." }
 bun run ai auto $Model
 # Needle picks which skills each message needs in a blink, instead of asking the main AI first.
