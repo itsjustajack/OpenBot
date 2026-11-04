@@ -14,7 +14,7 @@ import {
 } from "../src/api";
 import { authClient } from "../src/auth";
 import { SectionLabel } from "../src/home-screen";
-import { LatchPage, LatchProblem, SwitchCard } from "../src/page";
+import { Chips, LatchPage, LatchProblem, SwitchCard } from "../src/page";
 import {
   ANSWER_LABELS,
   AREA_ORDER,
@@ -83,70 +83,6 @@ function Pill({
       <Text style={{ color: text, fontSize: 12, fontWeight: "600" }}>
         {answerLabel(behaviour)}
       </Text>
-    </View>
-  );
-}
-
-function Chips<T extends string>({
-  theme,
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  theme: Theme;
-  label: string;
-  options: readonly { value: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <View style={{ gap: 8 }}>
-      <Text
-        style={{
-          color: theme.grey,
-          fontSize: 12,
-          fontWeight: "700",
-          letterSpacing: 1,
-        }}
-      >
-        {label.toUpperCase()}
-      </Text>
-      <View
-        accessibilityLabel={label}
-        accessibilityRole="radiogroup"
-        style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
-      >
-        {options.map((option) => {
-          const on = option.value === value;
-          return (
-            <Pressable
-              accessibilityRole="radio"
-              accessibilityState={{ checked: on }}
-              key={option.value}
-              onPress={() => onChange(option.value)}
-              style={{
-                backgroundColor: on ? theme.accent : theme.card,
-                borderColor: on ? theme.accent : theme.border,
-                borderWidth: 1,
-                borderRadius: 999,
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-              }}
-            >
-              <Text
-                style={{
-                  color: on ? (theme.dark ? "#062E6F" : "#FFFFFF") : theme.text,
-                  fontSize: 14,
-                  fontWeight: on ? "600" : "400",
-                }}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
     </View>
   );
 }
@@ -307,7 +243,7 @@ export default function RulesScreen() {
           >
             <Text
               style={{
-                color: allStopped && theme.dark ? "#062E6F" : "#FFFFFF",
+                color: allStopped ? theme.onAccent : "#FFFFFF",
                 fontSize: 16,
                 fontWeight: "700",
               }}
@@ -505,11 +441,7 @@ export default function RulesScreen() {
                         >
                           <Text
                             style={{
-                              color: on
-                                ? theme.dark
-                                  ? "#062E6F"
-                                  : "#FFFFFF"
-                                : theme.text,
+                              color: on ? theme.onAccent : theme.text,
                               fontSize: 13,
                               fontWeight: on ? "600" : "400",
                             }}
@@ -833,7 +765,7 @@ function ChoiceSheet({
           >
             <Text
               style={{
-                color: theme.dark ? "#062E6F" : "#FFFFFF",
+                color: theme.onAccent,
                 fontSize: 15,
                 fontWeight: "600",
               }}

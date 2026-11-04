@@ -34,6 +34,7 @@ import {
   removeWaiting,
   sendWaiting,
 } from "../src/phone-bot";
+import { getPreferences } from "../src/preferences";
 import { useTheme } from "../src/theme";
 
 const NAME = "Phone Bot";
@@ -116,14 +117,17 @@ export default function PhoneBot() {
     try {
       // Common requests are read word for word; Needle only gets what this can't tell.
       const plain = readPlainly(you);
+      // With "Always check with me first" on, nothing is done before Approve.
+      const alwaysAsks = getPreferences().phoneBotAlwaysAsks;
       if (plain) {
         setText("");
-        await run(you, [plain]);
+        if (alwaysAsks) setUnsure({ you, calls: [plain] });
+        else await run(you, [plain]);
         return;
       }
       const reply = await askNeedle(you, phoneTools(saved.bots), phoneFacts());
       setText("");
-      if (reply.calls.length && (reply.confidence ?? 1) >= SURE)
+      if (reply.calls.length && (reply.confidence ?? 1) >= SURE && !alwaysAsks)
         await run(you, reply.calls);
       else if (reply.calls.length || reply.unsure.length)
         setUnsure({

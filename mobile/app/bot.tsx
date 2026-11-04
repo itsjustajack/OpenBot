@@ -170,7 +170,7 @@ export default function BotScreen() {
         >
           <Text
             style={{
-              color: theme.dark ? "#062E6F" : "#FFFFFF",
+              color: theme.onAccent,
               fontSize: 15,
               fontWeight: "600",
             }}
