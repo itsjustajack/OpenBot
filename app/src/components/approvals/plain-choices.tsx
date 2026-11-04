@@ -50,8 +50,8 @@ import {
   savedRule,
   summarySentences,
 } from "@/lib/plain-approvals";
-import { queryClient } from "@/query-client";
 import { cn } from "@/lib/utils";
+import { queryClient } from "@/query-client";
 import { HOST_LABELS, LabelSelect } from "./rules";
 
 const ICONS: Record<PlainArea, typeof IconMail> = {

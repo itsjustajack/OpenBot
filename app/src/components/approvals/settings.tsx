@@ -21,10 +21,10 @@ import {
   ruleCoversBot,
   updateApprovalRuleMutationOptions,
 } from "@/lib/approvals";
-import { PlainChoices, PlainSummary } from "./plain-choices";
 import { currentUserQueryOptions } from "@/lib/auth/queries";
 import { plainChoiceOf } from "@/lib/plain-approvals";
 import { queryClient } from "@/query-client";
+import { PlainChoices, PlainSummary } from "./plain-choices";
 import { RuleRow } from "./rules";
 
 /**
