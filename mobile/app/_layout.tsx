@@ -51,6 +51,7 @@ export default function Layout() {
       <Stack.Screen name="rules" options={{ headerShown: false }} />
       <Stack.Screen name="plugins" options={{ title: "Plugins" }} />
       <Stack.Screen name="preferences" options={{ headerShown: false }} />
+      <Stack.Screen name="email-ai" options={{ headerShown: false }} />
       <Stack.Screen
         name="phone-bot"
         options={{ title: "Phone Bot", headerShown: false }}

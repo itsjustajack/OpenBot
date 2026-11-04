@@ -146,6 +146,12 @@ function SignedInMenu({ theme }: { theme: Theme }) {
       onPress: go("/rules"),
     },
     {
+      key: "email-ai",
+      title: "Email and AI",
+      about: "Your mailbox, and whether your Bots are online or offline",
+      onPress: go("/email-ai"),
+    },
+    {
       key: "bots",
       title: "Bots, routines and computers",
       onPress: go("/bots"),
