@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { faceColours, greeting, type Theme, useTheme } from "./theme";
+import { faceColour, greeting, type Theme, useTheme } from "./theme";
 import { VoiceTypingButton } from "./voice-typing";
 
 /**
@@ -25,43 +25,30 @@ export type HomeBot = {
 
 export type QuickStart = { label: string; text: string };
 
-/** A round face blending two colours, like the preview's soft gradient circles. */
+/** A Bot's face: a round soft colour with two little eyes, the same colour every time. */
 export function Face({ name, size = 44 }: { name: string; size?: number }) {
-  const [one, two] = faceColours(name);
+  const eye = {
+    position: "absolute" as const,
+    top: size * 0.3,
+    width: size * 0.1,
+    height: size * 0.22,
+    borderRadius: size * 0.05,
+    backgroundColor: "#1F1F1F",
+    transform: [{ rotate: "12deg" }],
+  };
   return (
     <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: one,
-        overflow: "hidden",
+        backgroundColor: faceColour(name),
       }}
     >
-      <View
-        style={{
-          position: "absolute",
-          width: size * 0.9,
-          height: size * 0.9,
-          borderRadius: size,
-          right: -size * 0.25,
-          bottom: -size * 0.2,
-          backgroundColor: two,
-          opacity: 0.85,
-        }}
-      />
-      <View
-        style={{
-          position: "absolute",
-          width: size * 0.5,
-          height: size * 0.5,
-          borderRadius: size,
-          left: size * 0.1,
-          top: size * 0.08,
-          backgroundColor: "#FFFFFF",
-          opacity: 0.18,
-        }}
-      />
+      <View style={[eye, { left: size * 0.36 }]} />
+      <View style={[eye, { left: size * 0.53 }]} />
     </View>
   );
 }
@@ -252,38 +239,50 @@ export function HomeScreen({
 
         <SectionLabel text="Explore Bots" theme={theme} />
         {bots.map((bot) => (
-          <Pressable
-            accessibilityRole="button"
-            key={bot.key}
-            onPress={bot.onPress}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 16,
-              backgroundColor: pressed ? theme.raised : theme.card,
-              borderColor: theme.dark ? "#2E2F30" : "#ECEDEF",
-              borderWidth: 1,
-              borderRadius: 18,
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-            })}
-          >
-            <Face name={bot.name} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text
-                style={{ color: theme.text, fontSize: 17, fontWeight: "600" }}
-              >
-                {bot.name}
-              </Text>
-              <Text style={{ color: theme.grey, fontSize: 14 }}>
-                {bot.about}
-              </Text>
-            </View>
-          </Pressable>
+          <BotCard bot={bot} key={bot.key} theme={theme} />
         ))}
         {footer}
       </ScrollView>
     </View>
+  );
+}
+
+/** One Bot as a rounded card: its face, its name, and a grey line on what it does. */
+export function BotCard({
+  theme,
+  bot,
+  right,
+}: {
+  theme: Theme;
+  bot: HomeBot;
+  right?: React.ReactNode;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={`Open ${bot.name}`}
+      accessibilityRole="button"
+      onPress={bot.onPress}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 16,
+        backgroundColor: pressed ? theme.raised : theme.card,
+        borderColor: theme.dark ? "#2E2F30" : "#ECEDEF",
+        borderWidth: 1,
+        borderRadius: 18,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+      })}
+    >
+      <Face name={bot.name} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ color: theme.text, fontSize: 17, fontWeight: "600" }}>
+          {bot.name}
+        </Text>
+        <Text style={{ color: theme.grey, fontSize: 14 }}>{bot.about}</Text>
+      </View>
+      {right}
+    </Pressable>
   );
 }
 
