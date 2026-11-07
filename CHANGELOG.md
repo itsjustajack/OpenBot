@@ -99,6 +99,11 @@ Newest first. `Unreleased` is what is on `main` and not yet tagged.
   the person opens the app under Connections, or presses Connect where Arcade already holds
   everything the app asks for.
 
+### The phone app opens again
+
+The phone app stopped on opening after the icons came in: they loaded a newer font helper than the
+rest of the app is built for. The app now asks for the matching one (`expo-font` 55).
+
 ### The phone's Bots, Look and feel, Email and AI, and Approvals pages use the compact Latch rows
 
 Each Bot is a row with its face, settings are rows with an icon and a switch or button on the right,
