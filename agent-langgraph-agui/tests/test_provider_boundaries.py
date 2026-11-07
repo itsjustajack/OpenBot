@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -476,6 +477,14 @@ async def test_openai_keeps_a_skill_turn_beside_the_message_it_was_picked_for(
     ]
 
 
+def _api_version_free(captured):
+    """The requests with the leading /v1 or /v1beta taken off each path."""
+    return [
+        {**request, "path": re.sub(r"^/v1(beta)?(?=/)", "", request["path"])}
+        for request in captured
+    ]
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("provider", "model"),
@@ -504,9 +513,10 @@ async def test_google_provider_reaches_google_genai_boundary(
     )
 
     assert result["messages"][0].content == "google loopback proof"
-    assert captured == [
+    # google-genai moved from /v1beta to /v1; either reaches the same model.
+    assert _api_version_free(captured) == [
         {
-            "path": "/v1beta/models/gemini-2.5-flash:generateContent",
+            "path": "/models/gemini-2.5-flash:generateContent",
             "x_goog_api_key_present": True,
             "body": {
                 "contents": [
@@ -552,7 +562,10 @@ async def test_google_spec_model_reaches_google_request(
 
     assert result["messages"][0].content == "google loopback proof"
     assert len(captured) == 1
-    assert captured[0]["path"] == "/v1beta/models/gemini-spec-model:generateContent"
+    assert (
+        _api_version_free(captured)[0]["path"]
+        == "/models/gemini-spec-model:generateContent"
+    )
 
 
 def _write_synthetic_chatgpt_store(path: Path):
