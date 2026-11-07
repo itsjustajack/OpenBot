@@ -99,6 +99,11 @@ Newest first. `Unreleased` is what is on `main` and not yet tagged.
   the person opens the app under Connections, or presses Connect where Arcade already holds
   everything the app asks for.
 
+### The phone's Bots, Look and feel, Email and AI, and Approvals pages use the compact Latch rows
+
+Each Bot is a row with its face, settings are rows with an icon and a switch or button on the right,
+and every page has a back arrow, except Bots, which is reached from the bottom bar.
+
 ### The phone app builds again when Hugging Face is slow to hand over Needle
 
 The phone build downloads a fixed version of Needle's files, tries each download a few times, keeps

@@ -14,7 +14,8 @@ import {
 } from "../src/api";
 import { authClient } from "../src/auth";
 import { SectionLabel } from "../src/home-screen";
-import { Chips, LatchPage, LatchProblem, SwitchCard } from "../src/page";
+import { Card, faint, Icon, type IconName } from "../src/latch";
+import { Chips, LatchPage, LatchProblem, SwitchRow } from "../src/page";
 import {
   ANSWER_LABELS,
   AREA_ORDER,
@@ -35,11 +36,11 @@ import { type Theme, useTheme } from "../src/theme";
 import { useAction } from "../src/ui";
 import { useLoad } from "../src/use-load";
 
-const ICONS: Record<PlainArea, string> = {
-  email: "✉",
-  websites: "◍",
-  files: "▤",
-  bots: "☺",
+const ICONS: Record<PlainArea, IconName> = {
+  email: "email-outline",
+  websites: "web",
+  files: "file-document-outline",
+  bots: "account-multiple-outline",
 };
 
 const HOST_LABELS: Record<HostCommandPolicy, string> = {
@@ -198,17 +199,17 @@ export default function RulesScreen() {
             backgroundColor: theme.card,
             borderColor: allStopped ? theme.border : theme.error,
             borderWidth: 1,
-            borderRadius: 18,
+            borderRadius: 16,
             padding: 16,
             gap: 10,
           }}
         >
-          <Text style={{ color: theme.text, fontSize: 15, fontWeight: "600" }}>
+          <Text style={{ color: theme.text, fontSize: 14, fontWeight: "600" }}>
             {allStopped
               ? "All your Bots are stopped"
               : `${working.length} of your Bots ${working.length === 1 ? "is" : "are"} working`}
           </Text>
-          <Text style={{ color: theme.grey, fontSize: 13 }}>
+          <Text style={{ color: theme.grey, fontSize: 12 }}>
             {allStopped
               ? "They do nothing for you, routines included, until you start them again."
               : "Stop all halts every Bot straight away, routines included. Nothing is lost."}
@@ -238,14 +239,15 @@ export default function RulesScreen() {
               alignItems: "center",
               backgroundColor: allStopped ? theme.accent : "#D93025",
               borderRadius: 999,
-              paddingVertical: 12,
+              minHeight: 44,
+              justifyContent: "center",
               opacity: pressed || action.busy === "stop" ? 0.8 : 1,
             })}
           >
             <Text
               style={{
                 color: allStopped ? theme.onAccent : "#FFFFFF",
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: "700",
               }}
             >
@@ -265,9 +267,9 @@ export default function RulesScreen() {
           <View
             style={{
               backgroundColor: theme.card,
-              borderColor: theme.dark ? "#2E2F30" : "#ECEDEF",
-              borderWidth: 1,
-              borderRadius: 18,
+              borderColor: faint(theme, 0.4),
+              borderWidth: 0.5,
+              borderRadius: 16,
               padding: 16,
               gap: 6,
             }}
@@ -283,12 +285,12 @@ export default function RulesScreen() {
             }).map((sentence) => (
               <Text
                 key={sentence}
-                style={{ color: theme.text, fontSize: 14, lineHeight: 20 }}
+                style={{ color: theme.text, fontSize: 13, lineHeight: 19 }}
               >
                 {sentence}
               </Text>
             ))}
-            <Text style={{ color: theme.grey, fontSize: 14, lineHeight: 20 }}>
+            <Text style={{ color: theme.grey, fontSize: 12, lineHeight: 17 }}>
               Passwords, security settings and payments always come to you.
             </Text>
           </View>
@@ -297,9 +299,9 @@ export default function RulesScreen() {
           <View
             style={{
               backgroundColor: theme.card,
-              borderColor: theme.dark ? "#2E2F30" : "#ECEDEF",
-              borderWidth: 1,
-              borderRadius: 18,
+              borderColor: faint(theme, 0.4),
+              borderWidth: 0.5,
+              borderRadius: 16,
               overflow: "hidden",
             }}
           >
@@ -324,35 +326,23 @@ export default function RulesScreen() {
                     paddingHorizontal: 16,
                     paddingVertical: 12,
                     backgroundColor: pressed ? theme.raised : theme.card,
-                    borderTopWidth: index > 0 ? 0.5 : 0,
-                    borderTopColor: theme.border,
+                    minHeight: 52,
+                    borderTopWidth: index > 0 ? 1 : 0,
+                    borderTopColor: faint(theme, 0.2),
                   })}
                 >
-                  <View
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: theme.raised,
-                    }}
-                  >
-                    <Text style={{ color: theme.text, fontSize: 16 }}>
-                      {ICONS[area]}
-                    </Text>
-                  </View>
+                  <Icon colour={theme.accent} name={ICONS[area]} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text
                       style={{
                         color: theme.text,
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: "600",
                       }}
                     >
                       {info.title}
                     </Text>
-                    <Text style={{ color: theme.grey, fontSize: 12 }}>
+                    <Text style={{ color: theme.grey, fontSize: 11.5 }}>
                       {answers
                         .map(
                           ({ doing, behaviour }) =>
@@ -371,8 +361,8 @@ export default function RulesScreen() {
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   gap: 10,
-                  borderTopWidth: 0.5,
-                  borderTopColor: theme.border,
+                  borderTopWidth: 1,
+                  borderTopColor: faint(theme, 0.2),
                 }}
               >
                 <View
@@ -382,29 +372,18 @@ export default function RulesScreen() {
                     gap: 12,
                   }}
                 >
-                  <View
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: theme.raised,
-                    }}
-                  >
-                    <Text style={{ color: theme.text, fontSize: 16 }}>▭</Text>
-                  </View>
+                  <Icon colour={theme.accent} name="monitor" />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text
                       style={{
                         color: theme.text,
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: "600",
                       }}
                     >
                       Your PC
                     </Text>
-                    <Text style={{ color: theme.grey, fontSize: 12 }}>
+                    <Text style={{ color: theme.grey, fontSize: 11.5 }}>
                       Running programs and commands on your computer
                     </Text>
                   </View>
@@ -416,7 +395,7 @@ export default function RulesScreen() {
                     flexDirection: "row",
                     flexWrap: "wrap",
                     gap: 8,
-                    paddingLeft: 46,
+                    paddingLeft: 34,
                   }}
                 >
                   {(Object.keys(HOST_LABELS) as HostCommandPolicy[]).map(
@@ -436,8 +415,9 @@ export default function RulesScreen() {
                           style={{
                             backgroundColor: on ? theme.accent : theme.raised,
                             borderRadius: 999,
-                            paddingHorizontal: 12,
-                            paddingVertical: 6,
+                            paddingHorizontal: 14,
+                            minHeight: 36,
+                            justifyContent: "center",
                           }}
                         >
                           <Text
@@ -466,30 +446,36 @@ export default function RulesScreen() {
           {everyBot && data.preferences ? (
             <>
               <SectionLabel text="Safety" theme={theme} />
-              <SwitchCard
-                about="Anything not chosen above waits for your yes."
-                disabled={Boolean(action.busy)}
-                label="Ask before other changes"
-                onChange={(enabled) => void setPreference({ enabled })}
-                theme={theme}
-                title="Ask before other changes"
-                value={data.preferences.enabled}
-              />
-              <SwitchCard
-                about={
-                  data.team?.enforceAutoReview
-                    ? "Your team keeps this on."
-                    : "A second check looks over risky steps before they happen."
-                }
-                disabled={
-                  Boolean(action.busy) || Boolean(data.team?.enforceAutoReview)
-                }
-                label="Double-check risky steps"
-                onChange={(autoReview) => void setPreference({ autoReview })}
-                theme={theme}
-                title="Double-check risky steps"
-                value={data.preferences.autoReview}
-              />
+              <Card theme={theme}>
+                <SwitchRow
+                  about="Anything not chosen above waits for your yes"
+                  disabled={Boolean(action.busy)}
+                  first
+                  icon="hand-back-right-outline"
+                  label="Ask before other changes"
+                  onChange={(enabled) => void setPreference({ enabled })}
+                  theme={theme}
+                  title="Ask before other changes"
+                  value={data.preferences.enabled}
+                />
+                <SwitchRow
+                  about={
+                    data.team?.enforceAutoReview
+                      ? "Your team keeps this on"
+                      : "A second check looks over risky steps before they happen"
+                  }
+                  disabled={
+                    Boolean(action.busy) ||
+                    Boolean(data.team?.enforceAutoReview)
+                  }
+                  icon="shield-search"
+                  label="Double-check risky steps"
+                  onChange={(autoReview) => void setPreference({ autoReview })}
+                  theme={theme}
+                  title="Double-check risky steps"
+                  value={data.preferences.autoReview}
+                />
+              </Card>
             </>
           ) : null}
 
@@ -576,10 +562,10 @@ function OtherRule({
     <View
       style={{
         backgroundColor: theme.card,
-        borderColor: theme.dark ? "#2E2F30" : "#ECEDEF",
-        borderWidth: 1,
-        borderRadius: 14,
-        paddingHorizontal: 14,
+        borderColor: faint(theme, 0.4),
+        borderWidth: 0.5,
+        borderRadius: 16,
+        paddingHorizontal: 16,
         paddingVertical: 10,
         gap: 4,
       }}
@@ -594,7 +580,7 @@ function OtherRule({
           alignItems: "center",
         }}
       >
-        <Text style={{ color: theme.grey, fontSize: 12 }}>
+        <Text style={{ color: theme.grey, fontSize: 11.5 }}>
           {BEHAVIOUR_LABELS[rule.behaviour]}
           {team
             ? " · set by your team"
@@ -720,7 +706,7 @@ function ChoiceSheet({
             padding: 12,
           }}
         >
-          <Text style={{ color: theme.text, fontSize: 14, lineHeight: 20 }}>
+          <Text style={{ color: theme.text, fontSize: 13, lineHeight: 19 }}>
             In plain words:{" "}
             <Text style={{ fontWeight: "700" }}>
               {choiceSentence({
@@ -746,7 +732,8 @@ function ChoiceSheet({
               borderColor: theme.border,
               borderWidth: 1,
               borderRadius: 999,
-              paddingVertical: 12,
+              minHeight: 44,
+              justifyContent: "center",
             }}
           >
             <Text
@@ -764,7 +751,8 @@ function ChoiceSheet({
               alignItems: "center",
               backgroundColor: theme.accent,
               borderRadius: 999,
-              paddingVertical: 12,
+              minHeight: 44,
+              justifyContent: "center",
               opacity: saving ? 0.7 : 1,
             }}
           >

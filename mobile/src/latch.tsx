@@ -77,9 +77,12 @@ export function Row({
   first,
   onPress,
   danger,
+  leading,
 }: {
   theme: Theme;
   icon?: IconName;
+  /** Something on the left in place of the icon, such as a Bot's face. */
+  leading?: ReactNode;
   title: string;
   about?: string;
   right?: ReactNode;
@@ -102,7 +105,7 @@ export function Row({
           }}
         />
       )}
-      {icon ? <Icon colour={colour} name={icon} /> : null}
+      {leading ?? (icon ? <Icon colour={colour} name={icon} /> : null)}
       <View style={{ flex: 1, gap: 2 }}>
         <Text
           style={{
