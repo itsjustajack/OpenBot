@@ -1,12 +1,20 @@
 import { type FetchMessageObject, ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import nodemailer from "nodemailer";
-import type {
-  MailClient,
-  MailLogin,
-  MailMessage,
-  MailSummary,
+import { addressRefusal } from "./providers";
+import {
+  type MailClient,
+  type MailLogin,
+  type MailMessage,
+  MailRefusedError,
+  type MailSummary,
 } from "./service";
+
+/** Refuses before connecting when a server name points inside a private network. */
+async function publicOnly(host: string): Promise<void> {
+  const refusal = await addressRefusal(host);
+  if (refusal) throw new MailRefusedError(refusal);
+}
 
 /** The longest body a Bot is handed, so one huge newsletter cannot fill its whole turn. */
 export const MAX_BODY_CHARS = 12_000;
@@ -31,6 +39,7 @@ async function withFolder<T>(
   folder: string,
   work: (client: ImapFlow) => Promise<T>,
 ): Promise<T> {
+  await publicOnly(login.imapHost);
   const client = imap(login);
   await client.connect();
   try {
@@ -86,6 +95,27 @@ async function summaries(
   return found.sort((a, b) => b.uid - a.uid);
 }
 
+/**
+ * The newest `limit` messages in the open folder, by position: the last ones in it. One fetch,
+ * however big the folder is, where searching for every message first could time out on a large
+ * inbox.
+ */
+async function newestMessages(
+  client: ImapFlow,
+  limit: number,
+): Promise<MailSummary[]> {
+  const exists = client.mailbox ? client.mailbox.exists : 0;
+  if (exists === 0 || limit <= 0) return [];
+  const found: MailSummary[] = [];
+  for await (const message of client.fetch(
+    `${Math.max(1, exists - limit + 1)}:*`,
+    { uid: true, envelope: true, flags: true },
+  )) {
+    found.push(summary(message));
+  }
+  return found.sort((a, b) => b.uid - a.uid).slice(0, limit);
+}
+
 async function searchUids(
   client: ImapFlow,
   query: Record<string, unknown>,
@@ -97,6 +127,8 @@ async function searchUids(
 /** The real mailbox: IMAP over TLS to read, SMTP over TLS to send. Reading never marks mail read. */
 export const imapMailClient: MailClient = {
   async verify(login) {
+    await publicOnly(login.imapHost);
+    await publicOnly(login.smtpHost);
     const client = imap(login);
     await client.connect();
     await client.logout().catch(() => client.close());
@@ -110,11 +142,9 @@ export const imapMailClient: MailClient = {
 
   list(login, { folder, unreadOnly, limit }) {
     return withFolder(login, folder, async (client) =>
-      summaries(
-        client,
-        await searchUids(client, unreadOnly ? { seen: false } : { all: true }),
-        limit,
-      ),
+      unreadOnly
+        ? summaries(client, await searchUids(client, { seen: false }), limit)
+        : newestMessages(client, limit),
     );
   },
 
@@ -162,6 +192,7 @@ export const imapMailClient: MailClient = {
   },
 
   async send(login, mail) {
+    await publicOnly(login.smtpHost);
     const transport = smtp(login);
     try {
       const sent = await transport.sendMail({

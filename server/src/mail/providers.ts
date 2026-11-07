@@ -1,3 +1,5 @@
+import { lookup } from "node:dns/promises";
+import { checkNavigationTarget } from "../computer/target";
 /**
  * The mail servers of the common providers, so a person types their address and an app password
  * and nothing else. Anything not listed falls back to `imap.<domain>` and `smtp.<domain>`, which a
@@ -72,4 +74,35 @@ export function hostRefusal(host: string): string | null {
 
 export function isAddress(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+type Lookup = (
+  host: string,
+  options: { all: true },
+) => Promise<{ address: string; family: number }[]>;
+
+/**
+ * Why a server name is refused once it is looked up, or null. A public-looking name can still point
+ * at this deployment's own network (`10.0.0.5.nip.io`, or a domain whose address is 127.0.0.1), so
+ * every address the name has must be a public one, by the same rules the Bots' browser keeps.
+ * Checked before every connection, not only when the mailbox is saved, so a name that changes its
+ * address later is refused then too. A name that doesn't resolve is left to the connection to
+ * report.
+ */
+export async function addressRefusal(
+  host: string,
+  find: Lookup = lookup as unknown as Lookup,
+): Promise<string | null> {
+  let addresses: { address: string; family: number }[];
+  try {
+    addresses = await find(host, { all: true });
+  } catch {
+    return null;
+  }
+  for (const { address, family } of addresses) {
+    const literal = family === 6 ? `[${address}]` : address;
+    if (!checkNavigationTarget(`https://${literal}/`).allowed)
+      return `“${host}” points inside a private network, not at a mail server on the internet.`;
+  }
+  return null;
 }

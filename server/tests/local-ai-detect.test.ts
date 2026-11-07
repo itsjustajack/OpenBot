@@ -65,4 +65,6 @@ test("says when the server already uses a local model", async () => {
     isLocal: true,
   });
   expect(isLocalBaseUrl("https://api.openai.com/v1")).toBe(false);
+  // An IPv6 address is kept in brackets by URL, and still counts as this computer.
+  expect(isLocalBaseUrl("http://[::1]:11434/v1")).toBe(true);
 });

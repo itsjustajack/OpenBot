@@ -23,13 +23,19 @@ export type Waiting = {
 };
 type Saved = { notes: Note[]; outbox: Waiting[]; bots: string[] };
 
-const FILE = new File(Paths.document, "phone-bot.json");
+// Made on first use, not when the module loads, so a screen that imports this still opens where
+// there is no phone file system (the web build used for pictures of screens).
+let file: File | undefined;
+const phoneFile = () => {
+  file ??= new File(Paths.document, "phone-bot.json");
+  return file;
+};
 const EMPTY: Saved = { notes: [], outbox: [], bots: [] };
 
 export function load(): Saved {
   try {
-    if (!FILE.exists) return { ...EMPTY };
-    const saved = JSON.parse(FILE.textSync()) as Partial<Saved>;
+    if (!phoneFile().exists) return { ...EMPTY };
+    const saved = JSON.parse(phoneFile().textSync()) as Partial<Saved>;
     return {
       notes: Array.isArray(saved.notes) ? saved.notes : [],
       outbox: Array.isArray(saved.outbox) ? saved.outbox : [],
@@ -41,8 +47,8 @@ export function load(): Saved {
 }
 
 function save(next: Saved) {
-  if (!FILE.exists) FILE.create();
-  FILE.write(JSON.stringify(next));
+  if (!phoneFile().exists) phoneFile().create();
+  phoneFile().write(JSON.stringify(next));
 }
 
 const id = () => Crypto.randomUUID();

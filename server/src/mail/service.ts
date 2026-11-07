@@ -175,7 +175,8 @@ export function createMailService(deps: {
       };
       try {
         await deps.client.verify(candidate);
-      } catch {
+      } catch (error) {
+        if (error instanceof MailRefusedError) throw error;
         throw new MailRefusedError(
           "Couldn't log in to that mailbox. Check the address and the app password, and that IMAP is turned on for it.",
           502,
