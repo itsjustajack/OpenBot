@@ -9,6 +9,7 @@ const config: SwitchConfig = {
   online: { url: "https://online.example/v1", key: "k", model: "big-online" },
   offline: { url: "http://ollama:11434/v1", model: "qwen2.5:7b" },
   onlineWaitMs: 1000,
+  onlineAnswerWaitMs: 1000,
   retryAfterMs: 60_000,
 };
 
@@ -114,10 +115,55 @@ describe("AI switch", () => {
       return send(url, init);
     }) as unknown as typeof fetch;
     const response = await createSwitch(
-      { ...config, onlineWaitMs: 20 },
+      { ...config, onlineWaitMs: 20, onlineAnswerWaitMs: 20 },
       slowSend,
     ).handle(ask());
     expect(await response.json()).toEqual({ from: "offline" });
+  });
+
+  test("waits longer for a whole answer than for a streamed one to start", async () => {
+    const late = (after: number) =>
+      (async (url: string, init: RequestInit) => {
+        if (!url.startsWith("https://online.example"))
+          return Response.json({ from: "offline" });
+        return new Promise<Response>((done, fail) => {
+          const timer = setTimeout(
+            () => done(Response.json({ from: "online" })),
+            after,
+          );
+          init.signal?.addEventListener("abort", () => {
+            clearTimeout(timer);
+            fail(new DOMException("timed out", "AbortError"));
+          });
+        });
+      }) as unknown as typeof fetch;
+    const slow = { ...config, onlineWaitMs: 20, onlineAnswerWaitMs: 500 };
+    const whole = await createSwitch(slow, late(60)).handle(ask());
+    expect(await whole.json()).toEqual({ from: "online" });
+    const streamed = new Request("http://switch/v1/chat/completions", {
+      method: "POST",
+      body: JSON.stringify({ model: "x", messages: [], stream: true }),
+    });
+    const started = await createSwitch(slow, late(60)).handle(streamed);
+    expect(await started.json()).toEqual({ from: "offline" });
+  });
+
+  test("one bad request goes offline alone, and the next tries online again", async () => {
+    let status = 400;
+    const { send, calls } = fakeFetch(() =>
+      status === 200
+        ? Response.json({ from: "online" })
+        : new Response("bad", { status }),
+    );
+    const ai = createSwitch(config, send, () => 0);
+    expect(await (await ai.handle(ask())).json()).toEqual({ from: "offline" });
+    status = 200;
+    expect(await (await ai.handle(ask())).json()).toEqual({ from: "online" });
+    expect(calls.map((call) => call.model)).toEqual([
+      "big-online",
+      "qwen2.5:7b",
+      "big-online",
+    ]);
   });
 
   test("with no online AI set, uses the offline AI only", async () => {

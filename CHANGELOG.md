@@ -99,6 +99,16 @@ Newest first. `Unreleased` is what is on `main` and not yet tagged.
   the person opens the app under Connections, or presses Connect where Arcade already holds
   everything the app asks for.
 
+### The AI switch waits for whole answers, and mailboxes on private addresses are refused
+
+The AI switch waits up to three minutes (`ONLINE_AI_ANSWER_WAIT_MS`) for an answer that isn't
+streamed, instead of 20 seconds, so a long answer from a working online AI no longer falls back to
+the offline AI. A 400, 413 or 422 from the online AI sends only that request offline, not every
+request for a minute. `bun run ai auto` points the server at `AI_SWITCH_PORT` when it is set, and
+`http://[::1]:...` counts as this computer. A mail server whose name resolves to a private,
+loopback or link-local address is refused before every connection, and listing a large mailbox
+fetches only its newest messages.
+
 ### Approval rules with `|` in a scope match again; phone outbox keeps every message
 
 A `|` in an approval rule means "any of" only in the rule's tool, as Settings' plain choices write

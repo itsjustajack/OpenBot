@@ -262,7 +262,8 @@ if (process.argv[2] === "auto") {
       ...backupOf(text),
       AI_SWITCH: "on",
       OFFLINE_AI_MODEL: offlineModel,
-      OPENAI_BASE_URL: `http://127.0.0.1:${SWITCH_PORT}/v1`,
+      // The PC side reaches the switch on the port docker-compose publishes it on.
+      OPENAI_BASE_URL: `http://127.0.0.1:${read(text, "AI_SWITCH_PORT") || SWITCH_PORT}/v1`,
       // The Bots run in containers beside the switch, and reach it by its name.
       OPENAI_CONTAINER_BASE_URL: `http://ai-switch:${SWITCH_PORT}/v1`,
       BOT_MODEL: model,

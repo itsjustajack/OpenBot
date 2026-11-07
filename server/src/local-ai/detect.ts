@@ -94,7 +94,8 @@ export function isLocalBaseUrl(value: string | undefined | null): boolean {
   if (!value) return false;
   try {
     const host = new URL(value).hostname;
-    return ["localhost", "127.0.0.1", "::1", "host.docker.internal"].includes(
+    // URL keeps an IPv6 host in brackets: http://[::1]:11434 has the hostname "[::1]".
+    return ["localhost", "127.0.0.1", "[::1]", "host.docker.internal"].includes(
       host,
     );
   } catch {

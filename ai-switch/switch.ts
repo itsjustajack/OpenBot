@@ -14,8 +14,13 @@ export type Side = { url: string; key?: string; model: string };
 export type SwitchConfig = {
   online?: Side;
   offline: Side;
-  /** How long to wait for the online AI to start answering before going offline. */
+  /** How long to wait for a streamed answer from the online AI to start before going offline. */
   onlineWaitMs: number;
+  /**
+   * How long to wait for an answer that isn't streamed. It only arrives once it is whole, so a long
+   * answer from a working online AI takes far longer than a streamed one takes to start.
+   */
+  onlineAnswerWaitMs: number;
   /** How long to stay offline after the online AI failed. */
   retryAfterMs: number;
 };
@@ -37,6 +42,7 @@ export function configFromEnvironment(
       model: get("OFFLINE_AI_MODEL") ?? "qwen2.5:7b",
     },
     onlineWaitMs: Number(get("ONLINE_AI_WAIT_MS") ?? 20_000),
+    onlineAnswerWaitMs: Number(get("ONLINE_AI_ANSWER_WAIT_MS") ?? 180_000),
     retryAfterMs: Number(get("ONLINE_AI_RETRY_AFTER_MS") ?? 60_000),
   };
 }
@@ -48,6 +54,24 @@ export function configFromEnvironment(
  */
 export function shouldFallBack(status: number): boolean {
   return status < 200 || status >= 300;
+}
+
+/**
+ * Whether a failure says something about the online AI rather than about this one request. A bad,
+ * too large or unreadable request (400, 413, 422) goes offline for that request only, so one odd
+ * request doesn't send everyone to the slower offline AI for a minute.
+ */
+export function staysOfflineAfter(status: number): boolean {
+  return ![400, 413, 422].includes(status);
+}
+
+function isStreamed(body: string | null): boolean {
+  if (body === null) return false;
+  try {
+    return JSON.parse(body)?.stream === true;
+  } catch {
+    return false;
+  }
 }
 
 function join(base: string, path: string): string {
@@ -136,25 +160,29 @@ export function createSwitch(
         : await request.text();
 
     if (config.online && now() >= offlineUntil) {
+      let stayOffline = true;
       try {
         const response = await forward(
           config.online,
           request,
           path,
           body,
-          config.onlineWaitMs,
+          isStreamed(body) ? config.onlineWaitMs : config.onlineAnswerWaitMs,
         );
         if (!shouldFallBack(response.status)) return passOn(response, "online");
-        console.log(
-          `Online AI answered ${response.status}; using the offline AI for now.`,
-        );
         await response.body?.cancel();
+        stayOffline = staysOfflineAfter(response.status);
+        console.log(
+          stayOffline
+            ? `Online AI answered ${response.status}; using the offline AI for now.`
+            : `Online AI answered ${response.status} to this request; the offline AI answers it instead.`,
+        );
       } catch (error) {
         console.log(
           `Online AI can't be reached (${(error as Error).name}); using the offline AI for now.`,
         );
       }
-      offlineUntil = now() + config.retryAfterMs;
+      if (stayOffline) offlineUntil = now() + config.retryAfterMs;
     }
 
     try {
