@@ -36,3 +36,18 @@ and attach them to the message.
   a "Needle isn't in this build" card there; on the phone it doesn't.
 - Keep screens web-safe: native-only modules are used inside functions (see `phoneFile()` in
   `src/phone-bot.ts` and the `notifications` guard in `app/_layout.tsx`), never at module load.
+
+## Tapping through every screen
+
+`scripts/tap-test.cjs <base-url> <label>` opens every route in light and dark, taps each button
+once (never ones that remove, send, stop, sign out or approve), and prints JSON per screen:
+JavaScript errors, errors from a tap, blank screens, and buttons under 44x40. On the web these are
+expected and not phone bugs: `registerHeadlessTask` (widgets), `validatePath` (phone files) and
+`getValueWithKeyAsync` (secure storage). Signed-out runs show Home for pages that need the PC.
+
+## Checks that run on every phone build
+
+- `npm run check-native` (in `mobile/`) fails when a native part isn't the version the Expo SDK
+  expects, which can build fine and then close on opening.
+- `phone-app.yml` installs the APK on an Android emulator and runs `.maestro/open-and-look-around.yaml`.
+  Add a step there when a new main place is added.

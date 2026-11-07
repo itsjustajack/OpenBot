@@ -99,6 +99,12 @@ Newest first. `Unreleased` is what is on `main` and not yet tagged.
   the person opens the app under Connections, or presses Connect where Arcade already holds
   everything the app asks for.
 
+### Every phone build is opened on an Android emulator before it's shared
+
+The phone build now installs the app on an Android emulator and taps through Home, the menu, Look
+and feel, Bots and the Phone Bot. A build that closes on opening fails there. A check also stops a
+build whose native parts don't match the Expo SDK.
+
 ### The phone app opens again
 
 The phone app stopped on opening after the icons came in: they loaded a newer font helper than the

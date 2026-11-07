@@ -8,7 +8,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
-    "get-needle": "node scripts/get-needle.mjs"
+    "get-needle": "node scripts/get-needle.mjs",
+    "check-native": "node scripts/check-native-versions.mjs"
   },
   "dependencies": {
     "@better-auth/core": "1.7.1",

@@ -45,6 +45,8 @@ jobs:
         run: echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
       - name: Install
         run: npm ci
+      - name: Check every native part matches the Expo SDK
+        run: npm run check-native
       # Needle's files come from Hugging Face. They're kept between builds so a build doesn't depend
       # on downloading them every time. Bump the key when the pinned version in get-needle.mjs changes.
       - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -60,9 +62,14 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
       - name: Make the Android project
         run: npx expo prebuild --platform android --no-install
+      # Native parts are unpacked when the app installs (legacy packaging). Real phones don't mind,
+      # and it lets the x86_64 test emulator below load the arm64 parts through translation;
+      # otherwise it only looks for x86_64 parts and the app closes on opening.
       - name: Build the APK
         working-directory: mobile/android
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+        run: |
+          grep -q "expo.useLegacyPackaging" app/build.gradle || { echo "::error::app/build.gradle no longer reads expo.useLegacyPackaging"; exit 1; }
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a -Pexpo.useLegacyPackaging=true --no-daemon
       - name: Name it
         run: cp android/app/build/outputs/apk/release/app-release.apk OpenBot-phone.apk
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -70,3 +77,42 @@ jobs:
           name: OpenBot-phone
           path: mobile/OpenBot-phone.apk
           retention-days: 30
+
+      # Try it on an Android emulator before anyone installs it: open the app and tap through the
+      # main places (mobile/.maestro). A build that closes on opening fails here. The app is built
+      # for arm64 phones; Android 11+ x86_64 emulator images run arm64 apps through translation
+      # (which needs the legacy packaging above).
+      - name: Let the emulator use the processor
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Get Maestro
+        working-directory: .
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/maestro.zip" https://github.com/mobile-dev-inc/maestro/releases/download/cli-2.12.0/maestro.zip
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
+      - name: Open it on an Android phone and look around
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          working-directory: mobile
+          script: |
+            adb install -r OpenBot-phone.apk
+            adb logcat -c
+            maestro test .maestro/open-and-look-around.yaml --format junit --output maestro-report.xml || (adb logcat -d -b crash; adb logcat -d | grep -E "AndroidRuntime|ReactNativeJS|FATAL" | tail -80; exit 1)
+      - name: Keep what the emulator saw
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: phone-test-report
+          path: |
+            mobile/maestro-report.xml
+            ~/.maestro/tests
+          retention-days: 7
