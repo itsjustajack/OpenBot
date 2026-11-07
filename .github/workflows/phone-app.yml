@@ -62,9 +62,14 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
       - name: Make the Android project
         run: npx expo prebuild --platform android --no-install
+      # Native parts are unpacked when the app installs (legacy packaging). Real phones don't mind,
+      # and it lets the x86_64 test emulator below load the arm64 parts through translation;
+      # otherwise it only looks for x86_64 parts and the app closes on opening.
       - name: Build the APK
         working-directory: mobile/android
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+        run: |
+          grep -q "expo.useLegacyPackaging" app/build.gradle || { echo "::error::app/build.gradle no longer reads expo.useLegacyPackaging"; exit 1; }
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a -Pexpo.useLegacyPackaging=true --no-daemon
       - name: Name it
         run: cp android/app/build/outputs/apk/release/app-release.apk OpenBot-phone.apk
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -75,7 +80,8 @@ jobs:
 
       # Try it on an Android emulator before anyone installs it: open the app and tap through the
       # main places (mobile/.maestro). A build that closes on opening fails here. The app is built
-      # for arm64 phones; Android 11+ x86_64 emulator images run arm64 apps through translation.
+      # for arm64 phones; Android 11+ x86_64 emulator images run arm64 apps through translation
+      # (which needs the legacy packaging above).
       - name: Let the emulator use the processor
         working-directory: .
         run: |
