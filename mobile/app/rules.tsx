@@ -22,6 +22,7 @@ import {
   answerLabel,
   choiceSentence,
   currentAnswer,
+  everyBotOverrules,
   type PlainAnswer,
   type PlainArea,
   type PlainDoing,
@@ -727,6 +728,10 @@ function ChoiceSheet({
                 doing: shownDoing,
                 answer: chosen,
                 botName,
+                everyBot:
+                  botId === "*"
+                    ? undefined
+                    : everyBotOverrules(data, area, shownDoing, chosen),
               })}
             </Text>
           </Text>

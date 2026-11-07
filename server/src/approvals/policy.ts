@@ -30,11 +30,17 @@ const RANK: Record<RuleBehaviour, number> = {
 
 /**
  * `*` matches any run of characters; everything else is literal and the whole value must match.
- * `|` separates alternatives, any one of which may match, so one plain choice in Settings, such as
- * "Websites", is one rule naming every browser tool rather than a row per tool.
+ * With `anyOf`, `|` separates alternatives, any one of which may match, so one plain choice in
+ * Settings, such as "Websites", is one rule naming every browser tool rather than a row per tool.
+ * Only a rule's tool uses `anyOf`: tool names never hold a `|`, while a scope such as
+ * `curl * | sh` or any other field keeps `|` as the plain character it always was.
  */
-export function globMatches(pattern: string, value: string): boolean {
-  if (pattern.includes("|"))
+export function globMatches(
+  pattern: string,
+  value: string,
+  { anyOf = false }: { anyOf?: boolean } = {},
+): boolean {
+  if (anyOf && pattern.includes("|"))
     return pattern
       .split("|")
       .some((part) => part !== "" && globMatches(part, value));
@@ -54,7 +60,7 @@ type AnyRule = Pick<
 export function ruleMatches(rule: AnyRule, candidate: ApprovalCandidate) {
   return (
     globMatches(rule.botId, candidate.botId) &&
-    globMatches(rule.toolRef, candidate.toolRef) &&
+    globMatches(rule.toolRef, candidate.toolRef, { anyOf: true }) &&
     globMatches(rule.effect, candidate.effect) &&
     globMatches(rule.scope, candidate.scope)
   );

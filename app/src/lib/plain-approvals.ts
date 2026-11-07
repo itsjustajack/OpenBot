@@ -220,16 +220,60 @@ export function summarySentences(
   return sentences;
 }
 
-/** The sentence under the choice being made, so what is allowed is said before it is saved. */
+/**
+ * On one Bot's page: the answer saved for every Bot, when it is stricter than `answer` and so wins
+ * over it on the server. Nothing when the Bot's own answer is the one that counts.
+ */
+export function everyBotOverrules(
+  data: Pick<ApprovalInboxData, "rules">,
+  area: PlainArea,
+  doing: PlainDoing,
+  answer: PlainAnswer,
+): RuleBehaviour | undefined {
+  const everyBot = savedRule(data.rules, area, doing, "*")?.behaviour;
+  return everyBot !== undefined && RANK[everyBot] > RANK[answer]
+    ? everyBot
+    : undefined;
+}
+
+/** What every Bot is set to, and so what one Bot still does, when every Bot's answer wins. */
+const STILL: Record<
+  RuleBehaviour,
+  (what: string, who: string) => [string, string]
+> = {
+  allow: (what, who) => [
+    `go ahead with ${what} without asking`,
+    `${who} goes ahead`,
+  ],
+  pre_approved: (what, who) => [
+    `only go ahead with ${what} when you asked for it`,
+    `${who} still only goes ahead when you asked for it`,
+  ],
+  ask: (what, who) => [
+    `ask you first before ${what}`,
+    `${who} will still ask you first`,
+  ],
+  hand_off: (what, who) => [`leave ${what} to you`, `${who} still won't do it`],
+};
+
+/**
+ * The sentence under the choice being made, so what is allowed is said before it is saved. On one
+ * Bot's page, pass `everyBot` (from `everyBotOverrules`) so a choice that can't take effect says so.
+ */
 export function choiceSentence(input: {
   area: PlainArea;
   doing: PlainDoing;
   answer: PlainAnswer;
   botName?: string;
+  everyBot?: RuleBehaviour;
 }): string {
   const one = input.botName !== undefined;
   const who = input.botName ?? "All your Bots";
   const what = AREAS[input.area][input.doing];
+  if (one && input.everyBot !== undefined) {
+    const [everyBot, still] = STILL[input.everyBot](what, who);
+    return `All your Bots are set to ${everyBot}. That comes first, so ${still}. To change it for ${who}, change it for All my Bots first.`;
+  }
   if (input.answer === "allow")
     return `${who} ${one ? "goes" : "go"} ahead with ${what} without asking.`;
   if (input.answer === "ask")

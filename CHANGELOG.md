@@ -99,6 +99,14 @@ Newest first. `Unreleased` is what is on `main` and not yet tagged.
   the person opens the app under Connections, or presses Connect where Arcade already holds
   everything the app asks for.
 
+### Approval rules with `|` in a scope match again; phone outbox keeps every message
+
+A `|` in an approval rule means "any of" only in the rule's tool, as Settings' plain choices write
+it. In scope, effect and Bot it is a plain character again, so a rule such as scope `curl * | sh`
+matches as it did before the plain choices. On one Bot's Approvals page, a choice looser than the
+one saved for every Bot now says that every Bot's choice comes first. The phone sends its outbox one
+message at a time and never drops or repeats a message added or removed during a send.
+
 ### Latch skin, email for Bots, online or offline AI, and Needle
 
 - A Latch skin: small rounded cards, caps labels, one blue accent, solid Bot faces, and on phones a
