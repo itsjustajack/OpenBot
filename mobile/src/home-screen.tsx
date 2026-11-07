@@ -8,12 +8,13 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomBar, Card, faint, Icon, type IconName, Row } from "./latch";
 import { faceColour, greeting, type Theme, useTheme } from "./theme";
 import { VoiceTypingButton } from "./voice-typing";
 
 /**
- * The front screen, after the preview Jack picked: a greeting, one big "Ask a Bot anything" box,
- * and the Bots below as rounded cards with a soft two-colour face. Light or dark with the phone.
+ * The front screen and the pieces other screens share: a Bot's face, the small caps section label,
+ * and labelled cards of rows. Light or dark with the phone.
  */
 
 export type HomeBot = {
@@ -59,11 +60,11 @@ export function SectionLabel({ theme, text }: { theme: Theme; text: string }) {
       accessibilityRole="header"
       style={{
         color: theme.accent,
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: "700",
-        letterSpacing: 1,
+        letterSpacing: 0.8,
         textTransform: "uppercase",
-        paddingLeft: 6,
+        paddingLeft: 4,
       }}
     >
       {text}
@@ -71,20 +72,42 @@ export function SectionLabel({ theme, text }: { theme: Theme; text: string }) {
   );
 }
 
+export type Count = { key: string; label: string; count: number };
+
+export type RecentChat = {
+  key: string;
+  title: string;
+  about: string;
+  icon: IconName;
+  onPress: () => void;
+};
+
+/**
+ * The front screen, in the Latch look: the greeting, the ask box, your Bots' faces in a row, what's
+ * happening right now, your recent chats, and the Chats, Bots and Menu bar along the bottom.
+ */
 export function HomeScreen({
   name,
   hint,
   bots,
+  counts,
+  recent,
   quickStarts,
   onAsk,
-  footer,
+  onBell,
+  below,
+  menu,
 }: {
   name?: string;
-  hint: string;
+  hint?: string;
   bots: HomeBot[];
+  counts: Count[];
+  recent: RecentChat[];
   quickStarts: QuickStart[];
   onAsk: (text: string) => void;
-  footer?: React.ReactNode;
+  onBell?: () => void;
+  below?: React.ReactNode;
+  menu: (close: () => void) => React.ReactNode;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -107,36 +130,54 @@ export function HomeScreen({
       />
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: 18,
-          paddingTop: insets.top + 72,
-          paddingBottom: insets.bottom + 32,
-          gap: 14,
+          paddingHorizontal: 16,
+          paddingTop: insets.top + 12,
+          paddingBottom: 24,
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text
+        <View
           style={{
-            color: theme.text,
-            fontSize: 30,
-            fontWeight: "400",
-            textAlign: "center",
-            marginBottom: 22,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            minHeight: 48,
+            paddingLeft: 4,
           }}
         >
-          {greeting()}
-          {name ? `, ${name}` : ""}
-        </Text>
+          <Text
+            accessibilityRole="header"
+            style={{ color: theme.text, fontSize: 20, fontWeight: "600" }}
+          >
+            {greeting()}
+            {name ? `, ${name}` : ""}
+          </Text>
+          {onBell ? (
+            <Pressable
+              accessibilityLabel="What needs you"
+              accessibilityRole="button"
+              onPress={onBell}
+              style={{
+                width: 48,
+                height: 48,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon colour={theme.text} name="bell-outline" size={24} />
+            </Pressable>
+          ) : null}
+        </View>
 
         <View
           style={{
-            backgroundColor: theme.card,
-            borderColor: theme.dark ? "#3C3D3E" : theme.border,
-            borderWidth: 1,
+            backgroundColor: theme.raised,
             borderRadius: 22,
             paddingHorizontal: 16,
             paddingTop: 12,
-            paddingBottom: 10,
-            gap: 6,
+            paddingBottom: 8,
+            marginTop: 6,
+            gap: 4,
           }}
         >
           <TextInput
@@ -147,28 +188,33 @@ export function HomeScreen({
             placeholderTextColor={theme.grey}
             style={{
               color: theme.text,
-              fontSize: 17,
-              minHeight: 52,
+              fontSize: 15,
+              minHeight: 44,
               textAlignVertical: "top",
               padding: 0,
             }}
             value={text}
           />
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Pressable
               accessibilityLabel={
                 showQuick ? "Hide quick starts" : "Show quick starts"
               }
               accessibilityRole="button"
-              hitSlop={8}
               onPress={() => setShowQuick((now) => !now)}
-              style={{ width: 32, alignItems: "center" }}
+              style={{
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                marginLeft: -8,
+              }}
             >
-              <Text
-                style={{ color: theme.grey, fontSize: 26, fontWeight: "300" }}
-              >
-                {showQuick ? "×" : "+"}
-              </Text>
+              <Icon
+                colour={theme.grey}
+                name={showQuick ? "close" : "plus"}
+                size={24}
+              />
             </Pressable>
             <View style={{ flex: 1 }}>
               <VoiceTypingButton onText={setText} text={text} theme={theme} />
@@ -184,25 +230,24 @@ export function HomeScreen({
                 borderRadius: 20,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: theme.send,
-                opacity: ready ? 1 : 0.45,
+                backgroundColor: theme.accent,
+                opacity: ready ? 1 : 0.4,
               }}
             >
-              <Text
-                style={{
-                  color: theme.sendIcon,
-                  fontSize: 20,
-                  fontWeight: "700",
-                }}
-              >
-                ↑
-              </Text>
+              <Icon colour={theme.onAccent} name="arrow-up" size={22} />
             </Pressable>
           </View>
         </View>
 
         {showQuick ? (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 8,
+              marginTop: 10,
+            }}
+          >
             {quickStarts.map((quick) => (
               <Pressable
                 accessibilityRole="button"
@@ -212,37 +257,130 @@ export function HomeScreen({
                   setShowQuick(false);
                 }}
                 style={{
-                  backgroundColor: theme.raised,
+                  backgroundColor: theme.card,
+                  borderColor: faint(theme, 0.6),
+                  borderWidth: 0.5,
                   borderRadius: 18,
                   paddingHorizontal: 14,
-                  paddingVertical: 8,
+                  minHeight: 40,
+                  justifyContent: "center",
                 }}
               >
-                <Text style={{ color: theme.text, fontSize: 14 }}>
+                <Text style={{ color: theme.text, fontSize: 13 }}>
                   {quick.label}
                 </Text>
               </Pressable>
             ))}
           </View>
         ) : null}
+        {hint ? (
+          <Text
+            style={{
+              color: theme.grey,
+              fontSize: 12,
+              marginTop: 8,
+              paddingLeft: 4,
+            }}
+          >
+            {hint}
+          </Text>
+        ) : null}
 
-        <Text
-          style={{
-            color: theme.grey,
-            fontSize: 14,
-            textAlign: "center",
-            marginBottom: 30,
-          }}
-        >
-          {hint}
-        </Text>
+        <Section label="Your Bots" theme={theme}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 12 }}>
+            {bots.map((bot) => (
+              <Pressable
+                accessibilityHint={bot.about}
+                accessibilityLabel={`Open ${bot.name}`}
+                accessibilityRole="button"
+                key={bot.key}
+                onPress={bot.onPress}
+                style={{ width: "20%", alignItems: "center", gap: 5 }}
+              >
+                <Face name={bot.name} size={48} />
+                <Text
+                  numberOfLines={1}
+                  style={{ color: theme.text, fontSize: 12 }}
+                >
+                  {bot.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </Section>
 
-        <SectionLabel text="Explore Bots" theme={theme} />
-        {bots.map((bot) => (
-          <BotCard bot={bot} key={bot.key} theme={theme} />
-        ))}
-        {footer}
+        {counts.length ? (
+          <Section label="Right now" theme={theme}>
+            <Card theme={theme}>
+              <View style={{ flexDirection: "row" }}>
+                {counts.map((count, index) => (
+                  <View
+                    accessible
+                    accessibilityLabel={`${count.count} ${count.label}`}
+                    key={count.key}
+                    style={{
+                      flex: 1,
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderLeftWidth: index > 0 ? 1 : 0,
+                      borderLeftColor: faint(theme, 0.3),
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: theme.text,
+                        fontSize: 20,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {count.count}
+                    </Text>
+                    <Text style={{ color: theme.grey, fontSize: 11.5 }}>
+                      {count.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </Card>
+          </Section>
+        ) : null}
+
+        <Section label="Recent chats" theme={theme}>
+          <Card theme={theme}>
+            {recent.map((chat, index) => (
+              <Row
+                about={chat.about}
+                first={index === 0}
+                icon={chat.icon}
+                key={chat.key}
+                onPress={chat.onPress}
+                theme={theme}
+                title={chat.title}
+              />
+            ))}
+          </Card>
+        </Section>
+        {below}
       </ScrollView>
+      <BottomBar current="chats" menu={menu} theme={theme} />
+    </View>
+  );
+}
+
+/** A small caps label with its card below, 20dp from the section above. */
+export function Section({
+  theme,
+  label,
+  children,
+}: {
+  theme: Theme;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={{ marginTop: 20, gap: 6 }}>
+      <SectionLabel text={label} theme={theme} />
+      {children}
     </View>
   );
 }
@@ -290,10 +428,11 @@ export type MenuRow = {
   key: string;
   title: string;
   about?: string;
+  icon?: IconName;
   onPress: () => void;
 };
 
-/** A labelled card of rows (name, grey line, arrow), the Latch way of listing places to go. */
+/** A labelled card of rows (icon, name, grey line, arrow), the Latch way of listing places to go. */
 export function MenuRows({
   theme,
   label,
@@ -304,48 +443,20 @@ export function MenuRows({
   rows: MenuRow[];
 }) {
   return (
-    <View style={{ gap: 8, marginTop: 14 }}>
-      <SectionLabel text={label} theme={theme} />
-      <View
-        style={{
-          backgroundColor: theme.card,
-          borderColor: theme.dark ? "#2E2F30" : "#ECEDEF",
-          borderWidth: 1,
-          borderRadius: 16,
-          overflow: "hidden",
-        }}
-      >
+    <Section label={label} theme={theme}>
+      <Card theme={theme}>
         {rows.map((row, index) => (
-          <Pressable
-            accessibilityRole="button"
+          <Row
+            about={row.about}
+            first={index === 0}
+            icon={row.icon}
             key={row.key}
             onPress={row.onPress}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              backgroundColor: pressed ? theme.raised : theme.card,
-              borderTopWidth: index > 0 ? 0.5 : 0,
-              borderTopColor: theme.border,
-            })}
-          >
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text
-                style={{ color: theme.text, fontSize: 14, fontWeight: "600" }}
-              >
-                {row.title}
-              </Text>
-              {row.about ? (
-                <Text style={{ color: theme.grey, fontSize: 12 }}>
-                  {row.about}
-                </Text>
-              ) : null}
-            </View>
-            <Text style={{ color: theme.grey, fontSize: 18 }}>›</Text>
-          </Pressable>
+            theme={theme}
+            title={row.title}
+          />
         ))}
-      </View>
-    </View>
+      </Card>
+    </Section>
   );
 }

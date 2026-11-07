@@ -1,7 +1,13 @@
-import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { api, type Bot, type Conversation } from "../src/api";
+import {
+  type ApprovalInbox,
+  api,
+  type Bot,
+  type BotTask,
+  type Conversation,
+} from "../src/api";
 import {
   authClient,
   serverConfigured,
@@ -9,12 +15,15 @@ import {
   signInEnterprise,
 } from "../src/auth";
 import {
+  type Count,
   type HomeBot,
   HomeScreen,
   type MenuRow,
   MenuRows,
+  type RecentChat,
 } from "../src/home-screen";
-import { registerPush, unregisterPush } from "../src/notifications";
+import { MainMenu } from "../src/main-menu";
+import { load } from "../src/phone-bot";
 import { type Theme, useTheme } from "../src/theme";
 import { useLoad } from "../src/use-load";
 
@@ -37,17 +46,35 @@ const PHONE_BOT: HomeBot = {
 };
 
 /**
- * The front screen: a greeting, one "Ask a Bot anything" box, and the Bots as cards. Questions typed
- * here go to the Phone Bot, which works with no PC and no signal. With an OpenBot PC set and signed
- * in, the PC's Bots are listed too, with the rest of the app below.
+ * The front screen: the ask box, your Bots' faces, what's happening right now and your recent chats.
+ * Questions typed here go to the Phone Bot, which works with no PC and no signal. Signed in to an
+ * OpenBot PC, its Bots, chats and what needs you show here too.
  */
 export default function Home() {
   const theme = useTheme();
   const { data: session } = authClient.useSession();
   const signedIn = serverConfigured && Boolean(session);
+  const [phone, setPhone] = useState(loadPhone);
+  useFocusEffect(useCallback(() => setPhone(loadPhone()), []));
 
   const loadBots = useCallback(() => api<{ agents: Bot[] }>("/api/agents"), []);
   const pcBots = useLoad(loadBots, signedIn);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reload for whoever is signed in now
+  const loadChats = useCallback(
+    () => api<{ conversations: Conversation[] }>("/api/delivery/conversations"),
+    [session?.user.id],
+  );
+  const chats = useLoad(loadChats, signedIn);
+  const loadApprovals = useCallback(
+    () => api<ApprovalInbox>("/api/approvals"),
+    [],
+  );
+  const approvals = useLoad(loadApprovals, signedIn);
+  const loadTasks = useCallback(
+    () => api<{ tasks: BotTask[] }>("/api/tasks"),
+    [],
+  );
+  const tasks = useLoad(loadTasks, signedIn);
 
   const bots: HomeBot[] = [
     PHONE_BOT,
@@ -60,154 +87,81 @@ export default function Home() {
     })),
   ];
 
+  const waitingOnYou =
+    (approvals.data?.requests.filter((request) => request.status === "pending")
+      .length ?? 0) +
+    (approvals.data?.questions?.length ?? 0) +
+    (tasks.data?.tasks.filter((task) => task.status === "needs_input").length ??
+      0);
+  const counts: Count[] = signedIn
+    ? [
+        { key: "you", label: "Waiting on you", count: waitingOnYou },
+        {
+          key: "working",
+          label: "Working now",
+          count:
+            tasks.data?.tasks.filter((task) => task.status === "working")
+              .length ?? 0,
+        },
+        { key: "send", label: "Waiting to send", count: phone.outbox.length },
+      ]
+    : [
+        { key: "notes", label: "Notes", count: phone.notes.length },
+        { key: "send", label: "Waiting to send", count: phone.outbox.length },
+      ];
+
+  const lastNote = phone.notes.at(-1);
+  const recent: RecentChat[] = [
+    {
+      key: "phone-bot",
+      title: "Phone Bot",
+      about: lastNote
+        ? `Note: ${lastNote.text}`
+        : "Reminders and notes, with no signal",
+      icon: "cellphone-message",
+      onPress: () => router.push("/phone-bot"),
+    },
+    ...(chats.data?.conversations ?? [])
+      .filter((chat) => chat.active)
+      .slice(0, 4)
+      .map((chat) => ({
+        key: chat.id,
+        title: chat.name,
+        about: "Chat on your PC",
+        icon: "message-outline" as const,
+        onPress: () =>
+          router.push({
+            pathname: "/conversation",
+            params: { channelId: chat.id },
+          }),
+      })),
+  ];
+
   return (
     <HomeScreen
-      bots={bots}
-      footer={
-        <>
-          {!serverConfigured ? null : signedIn ? (
-            <SignedInMenu theme={theme} />
-          ) : (
-            <SignIn theme={theme} />
-          )}
-          <MenuRows
-            label="This phone"
-            rows={[
-              {
-                key: "preferences",
-                title: "Preferences",
-                about:
-                  "Light or dark, colour, and how careful the Phone Bot is",
-                onPress: () => router.push("/preferences"),
-              },
-            ]}
-            theme={theme}
-          />
-        </>
+      below={
+        serverConfigured && !signedIn ? <SignIn theme={theme} /> : undefined
       }
+      bots={bots}
+      counts={counts}
       hint={
         signedIn
-          ? "The Phone Bot answers here. Tap a Bot to talk to it."
-          : "Works on your phone with no PC and no signal."
+          ? undefined
+          : "The Phone Bot answers here, with no PC and no signal."
       }
+      menu={(close) => <MainMenu close={close} theme={theme} />}
       name={session?.user.name?.split(" ")[0]}
       onAsk={askPhoneBot}
+      onBell={signedIn ? () => router.push("/needs-you") : undefined}
       quickStarts={PHONE_QUICK_STARTS}
+      recent={recent}
     />
   );
 }
 
-/** Everything else in the app, as Latch rows: what needs you, your chats, and the PC's parts. */
-function SignedInMenu({ theme }: { theme: Theme }) {
-  const { data: session } = authClient.useSession();
-  const [problem, setProblem] = useState("");
-  const [pushOn, setPushOn] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reload for whoever is signed in now
-  const loadConversations = useCallback(
-    () =>
-      api<{ conversations: Conversation[]; nextCursor: string | null }>(
-        "/api/delivery/conversations",
-      ),
-    [session?.user.id],
-  );
-  const conversations = useLoad(loadConversations, true);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new person starts with notifications off here
-  useEffect(() => setPushOn(false), [session?.user.id]);
-
-  async function act(work: () => Promise<unknown>) {
-    setProblem("");
-    try {
-      await work();
-    } catch (failure) {
-      setProblem(
-        failure instanceof Error ? failure.message : "That didn't work.",
-      );
-    }
-  }
-
-  const go = (pathname: string) => () => router.push(pathname as never);
-  const places: MenuRow[] = [
-    {
-      key: "needs-you",
-      title: "Needs you",
-      about: "What your Bots found that needs you",
-      onPress: go("/needs-you"),
-    },
-    {
-      key: "approvals",
-      title: "Questions and approvals",
-      about: "Say yes or no to what your Bots want to do",
-      onPress: go("/approvals"),
-    },
-    {
-      key: "rules",
-      title: "What your Bots can do",
-      about: "Choose in plain words, or stop them all",
-      onPress: go("/rules"),
-    },
-    {
-      key: "email-ai",
-      title: "Email and AI",
-      about: "Your mailbox, and whether your Bots are online or offline",
-      onPress: go("/email-ai"),
-    },
-    {
-      key: "bots",
-      title: "Bots, routines and computers",
-      onPress: go("/bots"),
-    },
-    { key: "memory", title: "Memory", onPress: go("/memory") },
-  ];
-  const chats: MenuRow[] = (conversations.data?.conversations ?? []).map(
-    (conversation) => ({
-      key: conversation.id,
-      title: conversation.name,
-      about: conversation.active ? undefined : "Inactive",
-      onPress: () =>
-        router.push({
-          pathname: "/conversation",
-          params: { channelId: conversation.id },
-        }),
-    }),
-  );
-  const account: MenuRow[] = [
-    {
-      key: "push",
-      title: pushOn ? "Notifications are on" : "Turn on notifications",
-      about: "Hear from your Bots when you're away",
-      onPress: () =>
-        void act(async () => {
-          await registerPush();
-          setPushOn(true);
-        }),
-    },
-    {
-      key: "sign-out",
-      title: "Sign out",
-      onPress: () =>
-        void act(async () => {
-          await unregisterPush();
-          const result = await authClient.signOut();
-          if (result.error)
-            throw new Error(result.error.message ?? "Could not sign out.");
-        }),
-    },
-  ];
-
-  return (
-    <>
-      {problem || conversations.error ? (
-        <Text accessibilityRole="alert" style={{ color: "#D93025" }}>
-          {problem || conversations.error}
-        </Text>
-      ) : null}
-      <MenuRows label="Your OpenBot" rows={places} theme={theme} />
-      {chats.length ? (
-        <MenuRows label="Conversations" rows={chats} theme={theme} />
-      ) : null}
-      <MenuRows label="Account" rows={account} theme={theme} />
-    </>
-  );
+function loadPhone() {
+  const saved = load();
+  return { notes: saved.notes, outbox: saved.outbox };
 }
 
 /** Signing in to the OpenBot PC, for a phone app that has one set. */
