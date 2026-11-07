@@ -15,3 +15,9 @@ All from the repository root unless noted.
 | AI switch | `bun run ai status`, `bun run ai auto`, `bun run ai ollama-cloud` |
 | Phone pictures | the `openbot-phone-pictures` skill |
 | Phone APK / PC installer | merge to `main`; GitHub Actions builds `OpenBot-phone` and `OpenBot-PC` |
+
+## Known CI noise
+
+- `main` is red from the extension's page-network-hook test, which failed before the fork.
+- The Python Bots' requirements aren't pinned, so a new library release can break their tests
+  (google-genai 3.0 moved `/v1beta` to `/v1`; see `agent-langgraph-agui/tests/test_provider_boundaries.py`).
