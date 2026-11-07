@@ -1,22 +1,27 @@
 import * as Notifications from "expo-notifications";
 import { router, Stack } from "expo-router";
 import { useEffect, useRef } from "react";
+import { Platform } from "react-native";
 import { authClient } from "../src/auth";
 import { notificationDestination } from "../src/links";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// The web build exists only to take pictures of screens; it has no notifications.
+const notifications = Platform.OS !== "web";
+if (notifications)
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
 export default function Layout() {
   const { data: session } = authClient.useSession();
   const pending = useRef<unknown>(null);
   const handled = useRef<string | null>(null);
   useEffect(() => {
+    if (!notifications) return;
     const open = (response: Notifications.NotificationResponse) => {
       const id = response.notification.request.identifier;
       if (handled.current === id) return;
