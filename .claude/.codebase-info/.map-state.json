@@ -1,0 +1,19 @@
+{
+  "lastMappedCommit": "255c73180c46b2d8533d8a3d7f4d09a6ad345e7c",
+  "lastMappedDate": "2026-11-07",
+  "documents": [
+    "architecture.md",
+    "fork-changes.md",
+    "phone-app.md",
+    "windows.md",
+    "onboarding.md"
+  ],
+  "hashes": {
+    "INDEX.md": "834bf3440e02aeeb4a6681d633cde4c891020c08a9f2f56c1dfd8ac33b2483d7",
+    "architecture.md": "331f1d24356d0bd1426076e373505e3f78974647570d92dd37fb2b9f6ae803a0",
+    "fork-changes.md": "701e78298ecae2c59b774a9c6b2091c1c75f1b861fd44b760f241f9649088fbc",
+    "phone-app.md": "a6fe95b44e2e823bd4b422ec472dc262dbfc56b2ecc897a9073a92c8028fd70d",
+    "windows.md": "c4f395ce59d3bac4c0dc424b8b05ec69991e2438ba297255a2d8303b3d9f8fa4",
+    "onboarding.md": "0f126b3c63476b5557feb9f5f8c8e61bd32e563a69bc7ec25577cde5b0e592ec"
+  }
+}
