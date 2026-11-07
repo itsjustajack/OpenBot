@@ -34,8 +34,8 @@ Run these from the repository root, not from inside a package:
 
 ## Where things are
 
-A fuller map is in `.claude/.codebase-info/` (start at `INDEX.md`). Update it in the same PR when
-files move or a flow changes.
+A fuller map is in `.claude/.codebase-info/` (start at `INDEX.md`). The codebase-mapper plugin
+(enabled in `.claude/settings.json`) checks it after code changes; keep its updates in the same PR.
 
 
 - `app/` is the PC web app. Jack's look is the Latch skin in `app/src/skins/latch/`.
