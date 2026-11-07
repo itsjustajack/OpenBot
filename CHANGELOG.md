@@ -148,6 +148,8 @@ message at a time and never drops or repeats a message added or removed during a
 - Phone app: offline voice typing, charts and choices drawn natively, and a Phone Bot that sets
   reminders, keeps notes and queues messages for Bots with no PC or signal (Needle on the phone).
 - `.claude/skills` gains Expo's official skills.
+- Claude Code sessions load the codebase-mapper plugin, which keeps `.claude/.codebase-info/` current
+  after code changes instead of by hand.
 
 ### Bots can install packages on their computers
 
