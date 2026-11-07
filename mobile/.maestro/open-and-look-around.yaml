@@ -1,0 +1,23 @@
+# Opens the phone app on an Android emulator and taps through the main places, the way Jack would.
+# CI runs it on every phone build (.github/workflows/phone-app.yml); it fails if the app closes.
+appId: ai.openbot.mobile
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Phone Bot"
+    timeout: 90000
+- assertVisible: "Chats"
+- tapOn: "Menu"
+- tapOn: "Look"
+- assertVisible: "Look and feel"
+- back
+- tapOn: "Bots"
+- assertVisible: "Phone Bot"
+- tapOn: "Phone Bot"
+- extendedWaitUntil:
+    visible: "Remind me"
+    timeout: 30000
+- back
+- tapOn: "Chats"
+- assertVisible: "Phone Bot"

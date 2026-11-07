@@ -45,6 +45,8 @@ jobs:
         run: echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
       - name: Install
         run: npm ci
+      - name: Check every native part matches the Expo SDK
+        run: npm run check-native
       # Needle's files come from Hugging Face. They're kept between builds so a build doesn't depend
       # on downloading them every time. Bump the key when the pinned version in get-needle.mjs changes.
       - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -70,3 +72,41 @@ jobs:
           name: OpenBot-phone
           path: mobile/OpenBot-phone.apk
           retention-days: 30
+
+      # Try it on an Android emulator before anyone installs it: open the app and tap through the
+      # main places (mobile/.maestro). A build that closes on opening fails here. The app is built
+      # for arm64 phones; Android 11+ x86_64 emulator images run arm64 apps through translation.
+      - name: Let the emulator use the processor
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Get Maestro
+        working-directory: .
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/maestro.zip" https://github.com/mobile-dev-inc/maestro/releases/download/cli-2.12.0/maestro.zip
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
+      - name: Open it on an Android phone and look around
+        uses: reactivecircus/android-emulator-runner@0a638108440efd5c7f980e6ba145dbcdd8f32009 # v2.37.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          working-directory: mobile
+          script: |
+            adb install -r OpenBot-phone.apk
+            adb logcat -c
+            maestro test .maestro/open-and-look-around.yaml --format junit --output maestro-report.xml || (adb logcat -d -b crash; adb logcat -d | grep -E "AndroidRuntime|ReactNativeJS|FATAL" | tail -80; exit 1)
+      - name: Keep what the emulator saw
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: phone-test-report
+          path: |
+            mobile/maestro-report.xml
+            ~/.maestro/tests
+          retention-days: 7
