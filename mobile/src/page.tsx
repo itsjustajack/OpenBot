@@ -10,23 +10,26 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Card, Icon, type IconName, Row } from "./latch";
 import type { Theme } from "./theme";
 
 /**
  * A Latch page: the calm page colour, a slim top bar with back and the page's name, and the page
- * scrolling below with pull to refresh.
+ * scrolling below with pull to refresh. Pages reached from the bottom bar leave out back.
  */
 export function LatchPage({
   theme,
   title,
   refreshing,
   onRefresh,
+  back = true,
   children,
 }: {
   theme: Theme;
   title: string;
   refreshing?: boolean;
   onRefresh?: () => void;
+  back?: boolean;
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
@@ -40,25 +43,30 @@ export function LatchPage({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingTop: insets.top + 8,
-          paddingBottom: 10,
-          paddingHorizontal: 12,
+          gap: 4,
+          minHeight: 48,
+          paddingTop: insets.top + 4,
+          paddingBottom: 4,
+          paddingHorizontal: back ? 4 : 20,
         }}
       >
-        <Pressable
-          accessibilityLabel="Back"
-          accessibilityRole="button"
-          hitSlop={10}
-          onPress={() =>
-            router.canGoBack() ? router.back() : router.push("/")
-          }
-          style={{ width: 28, alignItems: "center" }}
-        >
-          <Text style={{ color: theme.text, fontSize: 28, fontWeight: "300" }}>
-            ‹
-          </Text>
-        </Pressable>
+        {back ? (
+          <Pressable
+            accessibilityLabel="Back"
+            accessibilityRole="button"
+            onPress={() =>
+              router.canGoBack() ? router.back() : router.push("/")
+            }
+            style={{
+              width: 48,
+              height: 48,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon colour={theme.text} name="arrow-left" size={24} />
+          </Pressable>
+        ) : null}
         <Text
           accessibilityRole="header"
           style={{ color: theme.text, fontSize: 20, fontWeight: "600" }}
@@ -68,10 +76,10 @@ export function LatchPage({
       </View>
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: 18,
+          paddingHorizontal: 16,
           paddingTop: 8,
           paddingBottom: insets.bottom + 32,
-          gap: 12,
+          gap: 8,
         }}
         refreshControl={
           onRefresh ? (
@@ -104,9 +112,10 @@ export function LatchProblem({
   );
 }
 
-/** A rounded card with a title, a grey line under it, and an on/off switch on the right. */
+/** A Latch card holding one row: an icon, a name, a grey line under it, and an on/off switch. */
 export function SwitchCard({
   theme,
+  icon,
   title,
   about,
   value,
@@ -115,6 +124,7 @@ export function SwitchCard({
   onChange,
 }: {
   theme: Theme;
+  icon?: IconName;
   title: string;
   about: string;
   value: boolean;
@@ -123,35 +133,63 @@ export function SwitchCard({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        backgroundColor: theme.card,
-        borderColor: theme.dark ? "#2E2F30" : "#ECEDEF",
-        borderWidth: 1,
-        borderRadius: 18,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-      }}
-    >
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ color: theme.text, fontSize: 15, fontWeight: "600" }}>
-          {title}
-        </Text>
-        <Text style={{ color: theme.grey, fontSize: 13 }}>{about}</Text>
-      </View>
-      <Switch
-        accessibilityLabel={label}
+    <Card theme={theme}>
+      <SwitchRow
+        about={about}
         disabled={disabled}
-        onValueChange={onChange}
-        thumbColor="#FFFFFF"
-        {...{ activeThumbColor: "#FFFFFF" }}
-        trackColor={{ true: theme.accent, false: theme.border }}
+        first
+        icon={icon}
+        label={label}
+        onChange={onChange}
+        theme={theme}
+        title={title}
         value={value}
       />
-    </View>
+    </Card>
+  );
+}
+
+/** One Latch row with an on/off switch on the right, for a card of several. */
+export function SwitchRow({
+  theme,
+  icon,
+  title,
+  about,
+  value,
+  disabled,
+  label,
+  first,
+  onChange,
+}: {
+  theme: Theme;
+  icon?: IconName;
+  title: string;
+  about: string;
+  value: boolean;
+  disabled?: boolean;
+  label: string;
+  first?: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <Row
+      about={about}
+      first={first}
+      icon={icon}
+      right={
+        <Switch
+          accessibilityLabel={label}
+          disabled={disabled}
+          onValueChange={onChange}
+          thumbColor="#FFFFFF"
+          {...{ activeThumbColor: "#FFFFFF" }}
+          trackColor={{ true: theme.accent, false: theme.border }}
+          value={value}
+        />
+      }
+      theme={theme}
+      title={title}
+    />
   );
 }
 
@@ -174,9 +212,9 @@ export function Chips<T extends string>({
       <Text
         style={{
           color: theme.grey,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: "700",
-          letterSpacing: 1,
+          letterSpacing: 0.8,
         }}
       >
         {label.toUpperCase()}
@@ -200,13 +238,14 @@ export function Chips<T extends string>({
                 borderWidth: 1,
                 borderRadius: 999,
                 paddingHorizontal: 14,
-                paddingVertical: 8,
+                minHeight: 40,
+                justifyContent: "center",
               }}
             >
               <Text
                 style={{
                   color: on ? theme.onAccent : theme.text,
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: on ? "600" : "400",
                 }}
               >

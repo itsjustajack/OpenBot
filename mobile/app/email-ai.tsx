@@ -5,6 +5,7 @@ import { type AiStatus, aiInWords } from "../src/ai-status";
 import { api } from "../src/api";
 import { authClient } from "../src/auth";
 import { SectionLabel } from "../src/home-screen";
+import { Card, Row } from "../src/latch";
 import { LatchPage, LatchProblem } from "../src/page";
 import { type Theme, useTheme } from "../src/theme";
 import { useAction } from "../src/ui";
@@ -18,7 +19,8 @@ type MailAccount = {
   updatedAt: string;
 };
 
-function Card({
+/** A Latch card with room inside for the sign-in fields. */
+function PaddedCard({
   theme,
   children,
 }: {
@@ -26,18 +28,11 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <View
-      style={{
-        backgroundColor: theme.card,
-        borderColor: theme.dark ? "#2E2F30" : "#ECEDEF",
-        borderWidth: 1,
-        borderRadius: 18,
-        padding: 16,
-        gap: 12,
-      }}
-    >
-      {children}
-    </View>
+    <Card theme={theme}>
+      <View style={{ paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
+        {children}
+      </View>
+    </Card>
   );
 }
 
@@ -92,70 +87,61 @@ export default function EmailAndAi() {
 
       <SectionLabel text="AI" theme={theme} />
       <Card theme={theme}>
-        <View style={{ flexDirection: "row", gap: 12 }}>
-          <View
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: 6,
-              backgroundColor: dot,
-              marginTop: 5,
-            }}
-          />
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text
-              style={{ color: theme.text, fontSize: 15, fontWeight: "600" }}
+        <Row
+          about={words?.about}
+          first
+          leading={
+            <View
+              style={{
+                width: 22,
+                alignItems: "center",
+              }}
             >
-              {words?.title ?? "Checking…"}
-            </Text>
-            {words ? (
-              <Text style={{ color: theme.grey, fontSize: 13, lineHeight: 18 }}>
-                {words.about}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-        <View
-          style={{
-            borderTopWidth: 0.5,
-            borderTopColor: theme.border,
-            paddingTop: 12,
-            gap: 4,
-          }}
-        >
-          <Text style={{ color: theme.text, fontSize: 15, fontWeight: "600" }}>
-            Phone Bot
-          </Text>
-          <Text style={{ color: theme.grey, fontSize: 13, lineHeight: 18 }}>
-            Always runs right on this phone, with no internet and no PC.
-          </Text>
-        </View>
+              <View
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: dot,
+                }}
+              />
+            </View>
+          }
+          theme={theme}
+          title={words?.title ?? "Checking…"}
+        />
+        <Row
+          about="Always runs right on this phone, with no internet and no PC"
+          icon="cellphone"
+          theme={theme}
+          title="Phone Bot"
+        />
       </Card>
 
       <SectionLabel text="Email" theme={theme} />
       <Text
         style={{
           color: theme.grey,
-          fontSize: 13,
-          lineHeight: 18,
-          paddingHorizontal: 6,
+          fontSize: 12,
+          lineHeight: 17,
+          paddingHorizontal: 4,
         }}
       >
         Lets a Bot you give Email to read, search and send your mail. Reading
         never marks anything as read, and sending asks you first.
       </Text>
-      <Card theme={theme}>
+      <PaddedCard theme={theme}>
         {mail.error ? (
           <Text style={{ color: theme.grey, fontSize: 13 }}>{mail.error}</Text>
         ) : account ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View style={{ flex: 1, gap: 2 }}>
               <Text
-                style={{ color: theme.text, fontSize: 15, fontWeight: "600" }}
+                style={{ color: theme.text, fontSize: 14, fontWeight: "600" }}
               >
                 {account.address}
               </Text>
-              <Text style={{ color: theme.grey, fontSize: 13 }}>
+              <Text style={{ color: theme.grey, fontSize: 11.5 }}>
                 Connected through {account.imapHost}
               </Text>
             </View>
@@ -256,7 +242,7 @@ export default function EmailAndAi() {
         ) : (
           <Text style={{ color: theme.grey, fontSize: 13 }}>Checking…</Text>
         )}
-      </Card>
+      </PaddedCard>
     </LatchPage>
   );
 }

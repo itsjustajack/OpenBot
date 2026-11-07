@@ -65,6 +65,7 @@ export function SectionLabel({ theme, text }: { theme: Theme; text: string }) {
         letterSpacing: 0.8,
         textTransform: "uppercase",
         paddingLeft: 4,
+        paddingTop: 10,
       }}
     >
       {text}
@@ -378,7 +379,7 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <View style={{ marginTop: 20, gap: 6 }}>
+    <View style={{ marginTop: 10, gap: 6 }}>
       <SectionLabel text={label} theme={theme} />
       {children}
     </View>
