@@ -34,6 +34,10 @@ Run these from the repository root, not from inside a package:
 
 ## Where things are
 
+A fuller map is in `.claude/.codebase-info/` (start at `INDEX.md`). Update it in the same PR when
+files move or a flow changes.
+
+
 - `app/` is the PC web app. Jack's look is the Latch skin in `app/src/skins/latch/`.
 - `mobile/` is the Expo phone app, built into an APK by `.github/workflows/phone-app.yml`.
 - `scripts/windows/` and `installer/` hold the Windows setup and the OpenBot-Setup.exe build

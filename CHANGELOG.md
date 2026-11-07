@@ -99,6 +99,12 @@ Newest first. `Unreleased` is what is on `main` and not yet tagged.
   the person opens the app under Connections, or presses Connect where Arcade already holds
   everything the app asks for.
 
+### The phone app builds again when Hugging Face is slow to hand over Needle
+
+The phone build downloads a fixed version of Needle's files, tries each download a few times, keeps
+the files between builds, and accepts an optional `HF_TOKEN` secret. Builds had stopped at the
+download with a 404.
+
 ### The AI switch waits for whole answers, and mailboxes on private addresses are refused
 
 The AI switch waits up to three minutes (`ONLINE_AI_ANSWER_WAIT_MS`) for an answer that isn't
