@@ -143,3 +143,21 @@ test("says minutes in plain words", () => {
     describe({ name: "remind_me_in", arguments: { what: "tea", minutes: 1 } }),
   ).toBe('Remind you "tea" in 1 minute');
 });
+
+test("a send keeps messages added or removed while it was on its way", async () => {
+  const { mergeOutbox } = await import("../src/phone-bot");
+  const at = "2026-11-07T00:00:00.000Z";
+  const first = { id: "a", bot: "Scout", message: "one", at };
+  const second = { id: "b", bot: "Nobody", message: "two", at };
+  const added = { id: "c", bot: "Scout", message: "three", at };
+  // "a" went, "b" failed with a reason, "c" was added during the send.
+  const tried = new Map([
+    ["b", { ...second, problem: "There's no Bot called Nobody." }],
+  ]);
+  expect(mergeOutbox([first, second, added], ["a"], tried)).toEqual([
+    { ...second, problem: "There's no Bot called Nobody." },
+    added,
+  ]);
+  // "b" was taken off with "Don't send" during the send: it stays off.
+  expect(mergeOutbox([first, added], ["a"], tried)).toEqual([added]);
+});

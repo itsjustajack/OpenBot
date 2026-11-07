@@ -3,6 +3,7 @@ import type { ApprovalRule as ApprovalRuleRow } from "../src/api";
 import {
   choiceSentence,
   currentAnswer,
+  everyBotOverrules,
   plainChoiceOf,
   ruleFor,
   summarySentences,
@@ -68,4 +69,29 @@ test("the sentence under a choice names one Bot in the singular", () => {
       botName: "Scribe",
     }),
   ).toBe("Scribe asks you first before saving, changing or deleting files.");
+});
+
+test("on one Bot's page, a looser choice than every Bot's says that every Bot's comes first", () => {
+  const data = { rules: [row("all", ruleFor("email", "change", "ask"))] };
+  const everyBot = everyBotOverrules(data, "email", "change", "allow");
+  expect(everyBot).toBe("ask");
+  expect(
+    choiceSentence({
+      area: "email",
+      doing: "change",
+      answer: "allow",
+      botName: "Scout",
+      everyBot,
+    }),
+  ).toBe(
+    "All your Bots are set to ask you first before sending or deleting email. That comes first, so Scout will still ask you first. To change it for Scout, change it for All my Bots first.",
+  );
+  // A stricter or equal choice for one Bot does take effect, so nothing extra is said.
+  expect(
+    everyBotOverrules(data, "email", "change", "hand_off"),
+  ).toBeUndefined();
+  expect(everyBotOverrules(data, "email", "change", "ask")).toBeUndefined();
+  expect(
+    everyBotOverrules(data, "websites", "change", "allow"),
+  ).toBeUndefined();
 });

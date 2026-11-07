@@ -9,6 +9,7 @@ import {
   effectiveHostCommandPolicy,
   globMatches,
   reviewAction,
+  ruleMatches,
   safetyRequirement,
 } from "../src/approvals/policy";
 import {
@@ -95,13 +96,45 @@ describe("custom rules", () => {
 
   test("a | names several tools in one rule, as Settings' plain choices do", () => {
     const websites = "computer_click|computer_type|computer_navigate";
-    expect(globMatches(websites, "computer_type")).toBeTrue();
-    expect(globMatches(websites, "computer_write_file")).toBeFalse();
-    expect(globMatches("*mail*|*outlook*", "mcp/gmail/send_email")).toBeTrue();
-    expect(globMatches("*mail*|*outlook*", "outlook/send")).toBeTrue();
-    expect(globMatches("*mail*|*outlook*", "computer_click")).toBeFalse();
+    expect(globMatches(websites, "computer_type", { anyOf: true })).toBeTrue();
+    expect(
+      globMatches(websites, "computer_write_file", { anyOf: true }),
+    ).toBeFalse();
+    expect(
+      globMatches("*mail*|*outlook*", "mcp/gmail/send_email", { anyOf: true }),
+    ).toBeTrue();
+    expect(
+      globMatches("*mail*|*outlook*", "outlook/send", { anyOf: true }),
+    ).toBeTrue();
+    expect(
+      globMatches("*mail*|*outlook*", "computer_click", { anyOf: true }),
+    ).toBeFalse();
     // An empty alternative is not "match nothing" turned into "match everything".
-    expect(globMatches("a||", "")).toBeFalse();
+    expect(globMatches("a||", "", { anyOf: true })).toBeFalse();
+  });
+
+  test("a | anywhere but a rule's tool is still a plain character, as in older rules", () => {
+    expect(globMatches("curl * | sh", "curl x | sh")).toBeTrue();
+    expect(globMatches("curl * | sh", "curl x ")).toBeFalse();
+    const rule = {
+      id: "r",
+      botId: "*",
+      toolRef: "computer_type|computer_key",
+      effect: "*",
+      scope: "curl * | sh",
+      behaviour: "hand_off" as const,
+    };
+    const candidate = {
+      actorId: "u",
+      botId: "b",
+      toolRef: "computer_type",
+      effect: "write",
+      args: {},
+    };
+    expect(
+      ruleMatches(rule, { ...candidate, scope: "curl x | sh" }),
+    ).toBeTrue();
+    expect(ruleMatches(rule, { ...candidate, scope: "curl x " })).toBeFalse();
   });
 
   test("the four behaviours", async () => {

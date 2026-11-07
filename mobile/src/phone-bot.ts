@@ -422,7 +422,8 @@ export async function doJob(call: NeedleCall): Promise<Done> {
         message: s("message"),
         at: new Date().toISOString(),
       };
-      save({ ...saved, outbox: [...saved.outbox, waiting] });
+      const now = load();
+      save({ ...now, outbox: [...now.outbox, waiting] });
       const sent = await sendWaiting();
       return {
         said: sent.sent.includes(waiting.id)
@@ -449,13 +450,37 @@ export function removeWaiting(waitingId: string) {
 }
 
 /**
- * Sends what's waiting, if the PC answers. Also keeps the Bots' names for next time offline.
- * Anything that can't go stays, so nothing is lost.
+ * The outbox as it is now, after a send: what went is taken out and what failed gets its reason.
+ * Works from the outbox saved now, not the one the send started with, so a message added or
+ * removed while the send was waiting on the PC stays added or removed.
  */
-export async function sendWaiting(): Promise<{
-  sent: string[];
-  reached: boolean;
-}> {
+export function mergeOutbox(
+  now: Waiting[],
+  sent: string[],
+  tried: Map<string, Waiting>,
+): Waiting[] {
+  return now
+    .filter((entry) => !sent.includes(entry.id))
+    .map((entry) => tried.get(entry.id) ?? entry);
+}
+
+type SendResult = { sent: string[]; reached: boolean };
+let sending: Promise<SendResult> = Promise.resolve({
+  sent: [],
+  reached: false,
+});
+
+/**
+ * Sends what's waiting, if the PC answers. Also keeps the Bots' names for next time offline.
+ * Anything that can't go stays, so nothing is lost. One send at a time: a second call waits for
+ * the first, then sends whatever is still waiting, so nothing goes twice.
+ */
+export function sendWaiting(): Promise<SendResult> {
+  sending = sending.then(sendOnce, sendOnce);
+  return sending;
+}
+
+async function sendOnce(): Promise<SendResult> {
   let bots: Bot[];
   let conversations: Conversation[];
   try {
@@ -470,8 +495,10 @@ export async function sendWaiting(): Promise<{
   }
   const saved = load();
   const sent: string[] = [];
-  const outbox: Waiting[] = [];
+  const tried = new Map<string, Waiting>();
   for (const entry of saved.outbox) {
+    // Taken off while an earlier message was on its way: don't send it.
+    if (!load().outbox.some((each) => each.id === entry.id)) continue;
     const bot = bots.find(
       (each) => each.name.toLowerCase() === entry.bot.toLowerCase(),
     );
@@ -481,7 +508,7 @@ export async function sendWaiting(): Promise<{
         )
       : undefined;
     if (!bot || !chat) {
-      outbox.push({
+      tried.set(entry.id, {
         ...entry,
         problem: bot
           ? `There's no chat with ${bot.name} yet. Start one, and this goes next time.`
@@ -499,9 +526,14 @@ export async function sendWaiting(): Promise<{
       );
       sent.push(entry.id);
     } catch {
-      outbox.push(entry);
+      // No answer this time: it stays as it is and goes next time.
     }
   }
-  save({ ...load(), outbox, bots: bots.map((bot) => bot.name) });
+  const now = load();
+  save({
+    ...now,
+    outbox: mergeOutbox(now.outbox, sent, tried),
+    bots: bots.map((bot) => bot.name),
+  });
   return { sent, reached: true };
 }

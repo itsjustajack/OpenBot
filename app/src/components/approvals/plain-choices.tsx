@@ -43,6 +43,7 @@ import {
   answerLabel,
   choiceSentence,
   currentAnswer,
+  everyBotOverrules,
   type PlainAnswer,
   type PlainArea,
   type PlainDoing,
@@ -381,6 +382,10 @@ function ChoiceDialog({
                 doing: shownDoing,
                 answer: chosen,
                 botName,
+                everyBot:
+                  botId === "*"
+                    ? undefined
+                    : everyBotOverrules(data, area, shownDoing, chosen),
               })}
             </strong>
           </p>
